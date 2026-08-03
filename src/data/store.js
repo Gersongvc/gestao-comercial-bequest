@@ -97,12 +97,10 @@ export function gerarMetasCustodia2026(assessores) {
 
   const r = {};
   ativos.forEach(a => {
-    const base        = CUSTODIA_FINAL_2025[a.cod] || 0;
     const deltaAssess = deltaTimeAnual * pesos[a.cod];   // proporção pela carteira
-    // progressão linear: no mês i entregamos (i+1)/12 do delta anual
-    r[a.cod] = Array.from({ length: 12 }, (_, i) =>
-      Math.round(base + deltaAssess * (i + 1) / 12)
-    );
+    // delta mensal fixo: quanto o assessor precisa crescer em AUC por mês
+    const mensal = Math.round(deltaAssess / 12);
+    r[a.cod] = Array(12).fill(mensal);
   });
   return r;
 }

@@ -152,11 +152,12 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
   function metaVal(cod, i) {
     const curr = metaData[cod]?.[i] || 0;
     if (isCust) {
-      if (modo === 'acumulado') return curr;
-      // Mensal: se a meta do mês não foi definida, delta = 0
-      if (!curr) return 0;
-      const prev = i === 0 ? (CUSTODIA_FINAL_2025[cod] || 0) : (metaData[cod]?.[i - 1] || 0);
-      return curr - prev;
+      // Metas de custódia armazenadas como delta mensal (quanto o assessor deve crescer no mês)
+      if (modo === 'mensal') return curr;
+      // Acumulado: base Dez/25 + soma dos deltas Jan..i
+      let acc = CUSTODIA_FINAL_2025[cod] || 0;
+      for (let j = 0; j <= i; j++) acc += metaData[cod]?.[j] || 0;
+      return acc;
     } else {
       if (modo === 'mensal') return curr;
       let acc = 0;
