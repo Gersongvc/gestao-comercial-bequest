@@ -92,25 +92,17 @@ function CurrencyInput({ value, onChange, allowNegative = false }) {
 /* ─────────────────────────────────────────────────────────
    Painel de validação: confirma que soma(metas_ind) = meta_time
 ───────────────────────────────────────────────────────────── */
-function PainelValidacao({ assessores, dadosCust, dadosCap }) {
+function PainelValidacao({ assessores, dadosCust, dadosCap, deltaCustTeam, alvoCapTeam }) {
   const ativos = assessores.filter(a => a.ativo);
 
-  const baseCustTotal = ativos.reduce((s, a) => s + (CUSTODIA_FINAL_2025[a.cod] || 0), 0);
-  const baseCapTotal  = ativos.reduce((s, a) => s + (CAPTACAO_TOTAL_2025[a.cod]  || 0), 0);
-  const alvoCust      = baseCustTotal * (1 + CRESCIMENTO_CUSTODIA_2026);
-  const alvoCap       = baseCapTotal  * (1 + CRESCIMENTO_CAPTACAO_2026);
+  // Custódia: metas armazenadas como delta mensal → anual = mensal × 12
+  const somaCustAnual = ativos.reduce((s, a) => s + (dadosCust[a.cod]?.[0] || 0) * 12, 0);
+  // Captação: mensal × 12 = alvo anual
+  const somaCapAnual  = ativos.reduce((s, a) => s + (dadosCap[a.cod]?.[0]  || 0) * 12, 0);
 
-  // Soma das metas individuais em Dez (mês 11) para custódia
-  const somaCustDez  = ativos.reduce((s, a) => s + (dadosCust[a.cod]?.[11] || 0), 0);
-  // Soma das metas anuais (12×mensal) para captação
-  const somaCapAnual = ativos.reduce((s, a) => {
-    const mensal = dadosCap[a.cod]?.[0] || 0; // todos os meses são iguais
-    return s + mensal * 12;
-  }, 0);
-
-  const diffCust = somaCustDez - alvoCust;
-  const diffCap  = somaCapAnual - alvoCap;
-  const ok = (v) => Math.abs(v) < 1000; // tolerância de R$ 1k por arredondamento
+  const diffCust = somaCustAnual - deltaCustTeam;
+  const diffCap  = somaCapAnual  - alvoCapTeam;
+  const ok = (v) => Math.abs(v) < 1000;
 
   return (
     <div style={{
@@ -124,14 +116,14 @@ function PainelValidacao({ assessores, dadosCust, dadosCap }) {
 
       {/* Custódia */}
       <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '12px 14px', border: `1px solid ${ok(diffCust) ? '#A8DFC8' : '#F0C4B4'}` }}>
-        <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>CUSTÓDIA — Dez/2026</div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>CUSTÓDIA — Delta Anual 2026</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-          <span style={{ color: 'var(--text3)' }}>Meta time:</span>
-          <span style={{ fontWeight: 600 }}>{fmtMCustodia(alvoCust)}</span>
+          <span style={{ color: 'var(--text3)' }}>Delta time:</span>
+          <span style={{ fontWeight: 600 }}>{fmtMCustodia(deltaCustTeam)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
           <span style={{ color: 'var(--text3)' }}>Soma indiv.:</span>
-          <span style={{ fontWeight: 600 }}>{fmtMCustodia(somaCustDez)}</span>
+          <span style={{ fontWeight: 600 }}>{fmtMCustodia(somaCustAnual)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6, borderTop: '1px solid var(--border)', paddingTop: 6 }}>
           <span style={{ fontWeight: 700 }}>Diferença:</span>
@@ -143,10 +135,10 @@ function PainelValidacao({ assessores, dadosCust, dadosCap }) {
 
       {/* Captação */}
       <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '12px 14px', border: `1px solid ${ok(diffCap) ? '#A8DFC8' : '#F0C4B4'}` }}>
-        <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>CAPTAÇÃO — Anual 2026</div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginBottom: 6 }}>CAPTAÇÃO — Alvo Anual 2026</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-          <span style={{ color: 'var(--text3)' }}>Meta time:</span>
-          <span style={{ fontWeight: 600 }}>{fmtM(alvoCap)}</span>
+          <span style={{ color: 'var(--text3)' }}>Alvo time:</span>
+          <span style={{ fontWeight: 600 }}>{fmtM(alvoCapTeam)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
           <span style={{ color: 'var(--text3)' }}>Soma indiv.:</span>
@@ -166,7 +158,7 @@ function PainelValidacao({ assessores, dadosCust, dadosCap }) {
 /* ─────────────────────────────────────────────────────────
    Tabela editável
 ───────────────────────────────────────────────────────────── */
-function TabelaMetas({ assessores, dados, setDados, tipo, filtro }) {
+function TabelaMetas({ assessores, dados, setDados, tipo, filtro, deltaCustTeam, deltaCapTeam }) {
   const ativos = assessores.filter(a => a.ativo && (!filtro || a.cidade === filtro));
   const isCust = tipo === 'custodia';
 
@@ -216,12 +208,11 @@ function TabelaMetas({ assessores, dados, setDados, tipo, filtro }) {
               const base     = isCust ? baseCust : baseCap;
               const peso     = totalCust > 0 ? baseCust / totalCust : 0;
 
-              // Alvo calculado pela lógica de distribuição
-              const totalBase = assessores.filter(x => x.ativo).reduce((s, x) => s + (CUSTODIA_FINAL_2025[x.cod] || 0), 0);
-              const totalCapBase = assessores.filter(x => x.ativo).reduce((s, x) => s + (CAPTACAO_TOTAL_2025[x.cod] || 0), 0);
+              // Alvo por assessor proporcional ao peso (usa params dinâmicos)
+              const deltaTeam = isCust ? deltaCustTeam : deltaCapTeam;
               const alvo = isCust
-                ? baseCust + (totalBase * CRESCIMENTO_CUSTODIA_2026 * peso)
-                : baseCap  + (totalCapBase * CRESCIMENTO_CAPTACAO_2026 * peso);
+                ? baseCust + deltaTeam * peso          // delta anual individual
+                : baseCap  + deltaTeam * peso;         // delta captação individual
 
               const ultimoMes  = dados[a.cod]?.[11] || 0;
               const totalAnual = MESES.reduce((s, _, i) => s + (dados[a.cod]?.[i] || 0), 0);
@@ -335,6 +326,12 @@ export default function Metas() {
   const [saved,     setSaved]     = useState(false);
   const [gerado,    setGerado]    = useState(false);
 
+  // Parâmetros de geração automática
+  const [paramCustTipo, setParamCustTipo] = useState('pct');   // 'pct' | 'valor'
+  const [paramCustVal,  setParamCustVal]  = useState(CRESCIMENTO_CUSTODIA_2026 * 100);
+  const [paramCapTipo,  setParamCapTipo]  = useState('pct');
+  const [paramCapVal,   setParamCapVal]   = useState(CRESCIMENTO_CAPTACAO_2026  * 100);
+
   const isCust   = tipo === 'custodia';
   const dados    = isCust ? dadosCust : dadosCap;
   const setDados = isCust ? setDadosCust : setDadosCap;
@@ -343,9 +340,17 @@ export default function Metas() {
   const totalBase = ativos.reduce((s, a) => s + (CUSTODIA_FINAL_2025[a.cod] || 0), 0);
   const totalCap  = ativos.reduce((s, a) => s + (CAPTACAO_TOTAL_2025[a.cod]  || 0), 0);
 
+  // Deltas e alvos calculados a partir dos parâmetros atuais
+  const deltaCustTeam = paramCustTipo === 'pct' ? totalBase * (paramCustVal / 100) : paramCustVal;
+  const deltaCapTeam  = paramCapTipo  === 'pct' ? totalCap  * (paramCapVal  / 100) : paramCapVal;
+  const alvoCustTeam  = totalBase + deltaCustTeam;
+  const alvoCapTeam   = totalCap  + deltaCapTeam;
+
   function handleGerar() {
-    if (isCust) setDadosCust(d => ({ ...d, ...gerarMetasCustodia2026(assessores) }));
-    else        setDadosCap(d  => ({ ...d, ...gerarMetasCaptacao2026(assessores) }));
+    const optsCust = { tipo: paramCustTipo, valor: paramCustVal };
+    const optsCap  = { tipo: paramCapTipo,  valor: paramCapVal  };
+    if (isCust) setDadosCust(d => ({ ...d, ...gerarMetasCustodia2026(assessores, optsCust) }));
+    else        setDadosCap(d  => ({ ...d, ...gerarMetasCaptacao2026(assessores, optsCap)  }));
     setGerado(true);
     setTimeout(() => setGerado(false), 2500);
   }
@@ -390,9 +395,11 @@ export default function Metas() {
           <div className="kpi-sub">posição final do time</div>
         </div>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--blue)' }}>
-          <div className="kpi-label">Meta Custódia Dez/2026</div>
-          <div className="kpi-value" style={{ color: 'var(--blue)', fontSize: 18 }}>{fmtMCustodia(totalBase * 1.21)}</div>
-          <div className="kpi-sub">+21% → delta +{fmtMCustodia(totalBase * 0.21)}</div>
+          <div className="kpi-label">Alvo Custódia Dez/2026</div>
+          <div className="kpi-value" style={{ color: 'var(--blue)', fontSize: 18 }}>{fmtMCustodia(alvoCustTeam)}</div>
+          <div className="kpi-sub">
+            {paramCustTipo === 'pct' ? `+${paramCustVal}%` : 'valor fixo'} → delta +{fmtMCustodia(deltaCustTeam)}
+          </div>
         </div>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--amber)' }}>
           <div className="kpi-label">Base Captação 2025</div>
@@ -400,14 +407,109 @@ export default function Metas() {
           <div className="kpi-sub">saldo líquido anual do time</div>
         </div>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--green)' }}>
-          <div className="kpi-label">Meta Captação Anual 2026</div>
-          <div className="kpi-value" style={{ color: 'var(--green)', fontSize: 18 }}>{fmtM(totalCap * 1.25)}</div>
-          <div className="kpi-sub">+25% → delta +{fmtM(totalCap * 0.25)}</div>
+          <div className="kpi-label">Alvo Captação Anual 2026</div>
+          <div className="kpi-value" style={{ color: 'var(--green)', fontSize: 18 }}>{fmtM(alvoCapTeam)}</div>
+          <div className="kpi-sub">
+            {paramCapTipo === 'pct' ? `+${paramCapVal}%` : 'valor fixo'} → delta +{fmtM(deltaCapTeam)}
+          </div>
         </div>
       </div>
 
       {/* ── Validação ── */}
-      <PainelValidacao assessores={assessores} dadosCust={dadosCust} dadosCap={dadosCap} />
+      <PainelValidacao
+        assessores={assessores} dadosCust={dadosCust} dadosCap={dadosCap}
+        deltaCustTeam={deltaCustTeam} alvoCapTeam={alvoCapTeam}
+      />
+
+      {/* ── Parâmetros de geração automática ── */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16,
+        background: 'var(--surface2)', borderRadius: 12, padding: 16,
+        border: '1px solid var(--border)',
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', gridColumn: '1/-1', marginBottom: 2 }}>
+          <i className="ti ti-settings" style={{ marginRight: 6 }} />Parâmetros — Gerar Metas Automáticas 2026
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text3)', gridColumn: '1/-1', marginBottom: 8 }}>
+          Configure abaixo e clique em "Gerar metas" para distribuir automaticamente pelo peso da carteira.
+        </div>
+
+        {/* Custódia */}
+        <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '14px 16px', border: '1px solid #B8D0EF' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0D3B72', marginBottom: 10 }}>
+            <i className="ti ti-building-bank" style={{ marginRight: 4 }} />CUSTÓDIA
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            <button
+              className={`toggle-btn ${paramCustTipo === 'pct' ? 'active' : ''}`}
+              style={{ fontSize: 11, padding: '3px 12px' }}
+              onClick={() => { setParamCustTipo('pct'); setParamCustVal(CRESCIMENTO_CUSTODIA_2026 * 100); }}
+            >% Crescimento</button>
+            <button
+              className={`toggle-btn ${paramCustTipo === 'valor' ? 'active' : ''}`}
+              style={{ fontSize: 11, padding: '3px 12px' }}
+              onClick={() => { setParamCustTipo('valor'); setParamCustVal(deltaCustTeam || 0); }}
+            >R$ Delta</button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            {paramCustTipo === 'pct' ? (
+              <>
+                <input
+                  type="number" min="0" max="500" step="0.5"
+                  value={paramCustVal}
+                  onChange={e => setParamCustVal(parseFloat(e.target.value) || 0)}
+                  style={{ width: 72, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', textAlign: 'right', fontSize: 14, fontWeight: 600 }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>%</span>
+              </>
+            ) : (
+              <CurrencyInput value={paramCustVal} onChange={v => setParamCustVal(v)} />
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.7 }}>
+            <div>Delta time: <strong style={{ color: 'var(--blue)' }}>{fmtMCustodia(deltaCustTeam)}</strong></div>
+            <div>Alvo Dez/26: <strong>{fmtMCustodia(alvoCustTeam)}</strong></div>
+          </div>
+        </div>
+
+        {/* Captação */}
+        <div style={{ background: 'var(--surface)', borderRadius: 8, padding: '14px 16px', border: '1px solid #A8DFC8' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#0A4D31', marginBottom: 10 }}>
+            <i className="ti ti-trending-up" style={{ marginRight: 4 }} />CAPTAÇÃO
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            <button
+              className={`toggle-btn ${paramCapTipo === 'pct' ? 'active' : ''}`}
+              style={{ fontSize: 11, padding: '3px 12px' }}
+              onClick={() => { setParamCapTipo('pct'); setParamCapVal(CRESCIMENTO_CAPTACAO_2026 * 100); }}
+            >% Crescimento</button>
+            <button
+              className={`toggle-btn ${paramCapTipo === 'valor' ? 'active' : ''}`}
+              style={{ fontSize: 11, padding: '3px 12px' }}
+              onClick={() => { setParamCapTipo('valor'); setParamCapVal(deltaCapTeam || 0); }}
+            >R$ Delta</button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            {paramCapTipo === 'pct' ? (
+              <>
+                <input
+                  type="number" min="0" max="500" step="0.5"
+                  value={paramCapVal}
+                  onChange={e => setParamCapVal(parseFloat(e.target.value) || 0)}
+                  style={{ width: 72, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', textAlign: 'right', fontSize: 14, fontWeight: 600 }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>%</span>
+              </>
+            ) : (
+              <CurrencyInput value={paramCapVal} onChange={v => setParamCapVal(v)} allowNegative />
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.7 }}>
+            <div>Delta time: <strong style={{ color: 'var(--green)' }}>{fmtM(deltaCapTeam)}</strong></div>
+            <div>Alvo anual: <strong>{fmtM(alvoCapTeam)}</strong></div>
+          </div>
+        </div>
+      </div>
 
       {/* ── Controles ── */}
       <div className="filters-bar">
@@ -447,17 +549,17 @@ export default function Metas() {
       }}>
         {isCust ? (
           <>
-            <strong>📐 Lógica custódia:</strong> Delta time = R$ {fmtMCustodia(totalBase * 0.21)} (+21%)
-            → distribuído pelo peso da carteira de cada assessor
-            → progressão linear Jan (+1,75%) → Dez (+21%) <br />
-            <span style={{ opacity: 0.8 }}>Soma das metas individuais em Dez = meta do time em Dez/2026 ✓</span>
+            <strong>📐 Distribuição custódia:</strong> Delta time = {fmtMCustodia(deltaCustTeam)}
+            {paramCustTipo === 'pct' ? ` (+${paramCustVal}%)` : ' (R$ fixo)'}
+            → distribuído pelo peso da carteira → parcela mensal fixa por assessor<br />
+            <span style={{ opacity: 0.8 }}>Soma dos deltas individuais = delta do time ✓</span>
           </>
         ) : (
           <>
-            <strong>📐 Lógica captação:</strong> Delta time = {fmtM(totalCap * 0.25)} (+25%)
-            → distribuído pelo peso da carteira (custódia) de cada assessor
-            → parcela mensal fixa = alvo anual ÷ 12 <br />
-            <span style={{ opacity: 0.8 }}>Assessores com captação negativa em 2025 recebem meta proporcional ao seu livro (não ao histórico negativo). Soma das metas individuais = meta do time ✓</span>
+            <strong>📐 Distribuição captação:</strong> Delta time = {fmtM(deltaCapTeam)}
+            {paramCapTipo === 'pct' ? ` (+${paramCapVal}%)` : ' (R$ fixo)'}
+            → distribuído pelo peso da carteira (custódia) → parcela mensal fixa = alvo anual ÷ 12<br />
+            <span style={{ opacity: 0.8 }}>Assessores com captação negativa em 2025 recebem meta proporcional ao seu livro ✓</span>
           </>
         )}
       </div>
@@ -468,6 +570,8 @@ export default function Metas() {
         setDados={setDados}
         tipo={tipo}
         filtro={filtro}
+        deltaCustTeam={deltaCustTeam}
+        deltaCapTeam={deltaCapTeam}
       />
     </>
   );

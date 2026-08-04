@@ -87,39 +87,43 @@ function buildPesos(ativos) {
   return pesos;
 }
 
-export function gerarMetasCustodia2026(assessores) {
+// opts = { tipo: 'pct' | 'valor', valor: number }
+//   pct   → valor é o % de crescimento (ex: 21 para 21%)
+//   valor → valor é o delta total R$ do time
+export function gerarMetasCustodia2026(assessores, opts = { tipo: 'pct', valor: CRESCIMENTO_CUSTODIA_2026 * 100 }) {
   const ativos = assessores.filter(a => a.ativo);
   const pesos  = buildPesos(ativos);
-
-  // Delta total do time
   const totalBase2025  = ativos.reduce((s, a) => s + (CUSTODIA_FINAL_2025[a.cod] || 0), 0);
-  const deltaTimeAnual = totalBase2025 * CRESCIMENTO_CUSTODIA_2026;
+  const deltaTimeAnual = opts.tipo === 'pct'
+    ? totalBase2025 * (opts.valor / 100)
+    : opts.valor;
 
   const r = {};
   ativos.forEach(a => {
-    const deltaAssess = deltaTimeAnual * pesos[a.cod];   // proporção pela carteira
-    // delta mensal fixo: quanto o assessor precisa crescer em AUC por mês
+    const deltaAssess = deltaTimeAnual * pesos[a.cod];
     const mensal = Math.round(deltaAssess / 12);
     r[a.cod] = Array(12).fill(mensal);
   });
   return r;
 }
 
-export function gerarMetasCaptacao2026(assessores) {
+// opts = { tipo: 'pct' | 'valor', valor: number }
+//   pct   → valor é o % de crescimento sobre a captação 2025 (ex: 25 para 25%)
+//   valor → valor é o delta total R$ anual do time a distribuir
+export function gerarMetasCaptacao2026(assessores, opts = { tipo: 'pct', valor: CRESCIMENTO_CAPTACAO_2026 * 100 }) {
   const ativos = assessores.filter(a => a.ativo);
   const pesos  = buildPesos(ativos);
-
-  // Delta total do time (sobre o saldo acumulado 2025)
   const totalCap2025   = ativos.reduce((s, a) => s + (CAPTACAO_TOTAL_2025[a.cod] || 0), 0);
-  const alvoCapTime    = totalCap2025 * (1 + CRESCIMENTO_CAPTACAO_2026);
-  const deltaTimeAnual = alvoCapTime - totalCap2025;   // incremento a distribuir
+  const deltaTimeAnual = opts.tipo === 'pct'
+    ? totalCap2025 * (opts.valor / 100)
+    : opts.valor;
 
   const r = {};
   ativos.forEach(a => {
-    const baseCap2025    = CAPTACAO_TOTAL_2025[a.cod] || 0;
-    const deltaAssess    = deltaTimeAnual * pesos[a.cod];      // delta proporcional pela carteira
-    const alvoAnual      = baseCap2025 + deltaAssess;          // meta anual do assessor
-    const mensal         = Math.round(alvoAnual / 12);         // parcela mensal fixa
+    const baseCap2025 = CAPTACAO_TOTAL_2025[a.cod] || 0;
+    const deltaAssess = deltaTimeAnual * pesos[a.cod];
+    const alvoAnual   = baseCap2025 + deltaAssess;
+    const mensal      = Math.round(alvoAnual / 12);
     r[a.cod] = Array(12).fill(mensal);
   });
   return r;
