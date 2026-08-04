@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { MESES, CIDADES, COR_CIDADE, COR_BG } from '../data/dados';
+import { CAPTACAO_INICIAL } from '../data/dados';
 import { getAssessores, getCaptacao, saveCaptacao } from '../data/store';
 import { fmtM, iniciais } from '../utils/fmt';
 
@@ -13,7 +14,8 @@ export default function Captacao() {
   const [assessores]  = useState(getAssessores);
   const [dados, setDados] = useState(getCaptacao);
   const [filtro, setFiltro] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [imported,  setImported]  = useState(false);
 
   const ativos = assessores.filter(a => a.ativo && (!filtro || a.cidade === filtro));
 
@@ -30,6 +32,13 @@ export default function Captacao() {
     saveCaptacao(dados);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  function handleImportarBase() {
+    setDados(CAPTACAO_INICIAL);
+    saveCaptacao(CAPTACAO_INICIAL);
+    setImported(true);
+    setTimeout(() => setImported(false), 2500);
   }
 
   function exportar() {
@@ -68,6 +77,9 @@ export default function Captacao() {
           {Object.entries(CIDADES).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
         </select>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={handleImportarBase} title="Carrega os dados da planilha Consolidação.xlsx (Jan–Jul/2026)">
+            <i className={`ti ${imported ? 'ti-check' : 'ti-table-import'}`} /> {imported ? 'Importado!' : 'Importar base'}
+          </button>
           <button className="btn btn-outline" onClick={exportar}><i className="ti ti-file-spreadsheet" /> Exportar Excel</button>
           <button className="btn btn-success" onClick={handleSave}>
             <i className={`ti ${saved ? 'ti-check' : 'ti-device-floppy'}`} /> {saved ? 'Salvo!' : 'Salvar'}
