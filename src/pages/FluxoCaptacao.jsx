@@ -19,12 +19,12 @@ const tdNum = (cor) => ({
   textAlign: 'right', fontSize: 11, padding: '4px 8px', color: cor, fontWeight: 500,
 });
 
-function AssessorRows({ a, meses }) {
+function AssessorRows({ a, meses, mesDe = 0 }) {
   return (
     <>
       {LINHAS.map((l, li) => {
-        const vals  = meses.map((_, i) => {
-          const v = l.src[a.cod]?.[i] || 0;
+        const vals  = meses.map((_, ii) => {
+          const v = l.src[a.cod]?.[mesDe + ii] || 0;
           return l.sinal === -1 ? -Math.abs(v) : v;
         });
         const total = vals.reduce((s, v) => s + v, 0);
@@ -72,12 +72,12 @@ function AssessorRows({ a, meses }) {
   );
 }
 
-function TabelaMesMes({ ativos, meses }) {
+function TabelaMesMes({ ativos, meses, mesDe = 0 }) {
   const thStyle = { textAlign: 'right', minWidth: 115, fontSize: 11, padding: '6px 8px' };
 
   const totalTime = LINHAS.map(l =>
-    meses.map((_, i) => ativos.reduce((s, a) => {
-      const v = l.src[a.cod]?.[i] || 0;
+    meses.map((_, ii) => ativos.reduce((s, a) => {
+      const v = l.src[a.cod]?.[mesDe + ii] || 0;
       return s + (l.sinal === -1 ? -Math.abs(v) : v);
     }, 0))
   );
@@ -98,7 +98,7 @@ function TabelaMesMes({ ativos, meses }) {
             </tr>
           </thead>
           <tbody>
-            {ativos.map(a => <AssessorRows key={a.cod} a={a} meses={meses} />)}
+            {ativos.map(a => <AssessorRows key={a.cod} a={a} meses={meses} mesDe={mesDe} />)}
           </tbody>
           <tbody>
             {LINHAS.map((l, li) => {
@@ -136,13 +136,22 @@ function TabelaMesMes({ ativos, meses }) {
 /* ── Página principal ── */
 export default function FluxoCaptacao() {
   const assessores = getAssessores().filter(a => a.ativo);
-  const [filtro, setFiltro] = useState('');
+  const [filtro,    setFiltro]    = useState('');
+  const [busca,     setBusca]     = useState('');
+  const [mesDe,     setMesDe]     = useState(0);
+  const [mesAte,    setMesAte]    = useState(MESES_DISP.length - 1);
 
-  const ativos = assessores.filter(a => !filtro || a.cidade === filtro);
+  const ativos = assessores.filter(a =>
+    a.ativo &&
+    (!filtro || a.cidade === filtro) &&
+    (!busca  || a.nome.toLowerCase().includes(busca.toLowerCase()))
+  );
 
-  const totAporte  = MESES_DISP.map((_, i) => ativos.reduce((s, a) => s + (APORTE_INICIAL[a.cod]?.[i]  || 0), 0));
-  const totResgate = MESES_DISP.map((_, i) => ativos.reduce((s, a) => s + (RESGATE_INICIAL[a.cod]?.[i] || 0), 0));
-  const totLiq     = MESES_DISP.map((_, i) => totAporte[i] + totResgate[i]);
+  const mesesFiltrados = MESES_DISP.slice(mesDe, mesAte + 1);
+
+  const totAporte  = mesesFiltrados.map((_, ii) => { const i = mesDe + ii; return ativos.reduce((s, a) => s + (APORTE_INICIAL[a.cod]?.[i]  || 0), 0); });
+  const totResgate = mesesFiltrados.map((_, ii) => { const i = mesDe + ii; return ativos.reduce((s, a) => s + (RESGATE_INICIAL[a.cod]?.[i] || 0), 0); });
+  const totLiq     = mesesFiltrados.map((_, ii) => totAporte[ii] + totResgate[ii]);
 
   const somaAporte  = totAporte.reduce((s, v) => s + v, 0);
   const somaResgate = totResgate.reduce((s, v) => s + Math.abs(v), 0);
@@ -153,12 +162,29 @@ export default function FluxoCaptacao() {
 
   return (
     <>
-      {/* Filtro */}
-      <div className="filters-bar" style={{ marginBottom: 16 }}>
+      {/* Filtros */}
+      <div className="filters-bar" style={{ marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <select value={filtro} onChange={e => setFiltro(e.target.value)}>
           <option value="">Todas as cidades</option>
           {Object.entries(CIDADES).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
         </select>
+        <input
+          type="text"
+          placeholder="Buscar assessor..."
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, minWidth: 180, background: 'var(--surface)', color: 'var(--text1)' }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+          <span style={{ color: 'var(--text3)' }}>De</span>
+          <select value={mesDe} onChange={e => { const v = parseInt(e.target.value); setMesDe(v); if (v > mesAte) setMesAte(v); }}>
+            {MESES_DISP.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <span style={{ color: 'var(--text3)' }}>até</span>
+          <select value={mesAte} onChange={e => { const v = parseInt(e.target.value); setMesAte(v); if (v < mesDe) setMesDe(v); }}>
+            {MESES_DISP.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -177,7 +203,7 @@ export default function FluxoCaptacao() {
       </div>
 
       {/* Tabela mês a mês */}
-      <TabelaMesMes ativos={ativos} meses={MESES_DISP} />
+      <TabelaMesMes ativos={ativos} meses={mesesFiltrados} mesDe={mesDe} />
     </>
   );
 }
