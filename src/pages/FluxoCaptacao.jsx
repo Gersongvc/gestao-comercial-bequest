@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useState } from 'react';
 import { Chart, registerables } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import {
   MESES, CIDADES, COR_CIDADE, COR_BG,
   APORTE_INICIAL, RESGATE_INICIAL, CAPTACAO_INICIAL,
@@ -8,7 +9,7 @@ import {
 import { getAssessores } from '../data/store';
 import { fmtM, iniciais } from '../utils/fmt';
 
-Chart.register(...registerables);
+Chart.register(...registerables, ChartDataLabels);
 
 const MESES_DISP = MESES.slice(0, 7); // Jan–Jul
 
@@ -61,18 +62,36 @@ export default function FluxoCaptacao() {
 
   const tickFmt = v => fmtM(v);
 
+  // Formato abreviado para rótulos dentro dos gráficos
+  const fmtShort = v => {
+    const abs = Math.abs(v);
+    if (abs >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+    return v.toFixed(0);
+  };
+
   useChart(refBarMes, () => ({
     type: 'bar',
     data: {
       labels: MESES_DISP,
       datasets: [
-        { label: 'Aporte',  data: totAporte,              backgroundColor: 'rgba(29,158,117,0.8)', borderRadius: 4 },
+        { label: 'Aporte',  data: totAporte,               backgroundColor: 'rgba(29,158,117,0.8)', borderRadius: 4 },
         { label: 'Resgate', data: totResgate.map(Math.abs), backgroundColor: 'rgba(216,90,48,0.8)',  borderRadius: 4 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtM(c.raw)}` } } },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtM(c.raw)}` } },
+        datalabels: {
+          color: '#fff',
+          font: { size: 9, weight: '700' },
+          formatter: fmtShort,
+          anchor: 'center',
+          align: 'center',
+        },
+      },
       scales: { x: { grid: { display: false } }, y: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } } },
     },
   }), [filtro]);
@@ -93,7 +112,18 @@ export default function FluxoCaptacao() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `Líq.: ${fmtM(c.raw)}` } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `Líq.: ${fmtM(c.raw)}` } },
+        datalabels: {
+          color: ctx => ctx.raw >= 0 ? '#1D9E75' : '#D85A30',
+          font: { size: 9, weight: '700' },
+          formatter: fmtShort,
+          anchor: 'end',
+          align: ctx => ctx.raw >= 0 ? 'top' : 'bottom',
+          offset: 4,
+        },
+      },
       scales: { x: { grid: { display: false } }, y: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } } },
     },
   }), [filtro]);
@@ -109,7 +139,17 @@ export default function FluxoCaptacao() {
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtM(c.raw)}` } } },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtM(c.raw)}` } },
+        datalabels: {
+          color: '#fff',
+          font: { size: 9, weight: '700' },
+          formatter: fmtShort,
+          anchor: 'center',
+          align: 'center',
+        },
+      },
       scales: { x: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } },
     },
   }), [filtro, mesFiltro]);
@@ -127,7 +167,17 @@ export default function FluxoCaptacao() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `Retenção: ${c.raw.toFixed(1)}%` } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `Retenção: ${c.raw.toFixed(1)}%` } },
+        datalabels: {
+          color: '#fff',
+          font: { size: 10, weight: '700' },
+          formatter: v => `${v.toFixed(1)}%`,
+          anchor: 'center',
+          align: 'center',
+        },
+      },
       scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { ticks: { callback: v => `${v.toFixed(0)}%` }, grid: { color: 'rgba(0,0,0,0.05)' } } },
     },
   }), [filtro, mesFiltro]);
