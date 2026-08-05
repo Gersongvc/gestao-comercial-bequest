@@ -1,14 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { Chart, registerables } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { useState } from 'react';
 import {
   MESES, CIDADES, COR_CIDADE, COR_BG,
   APORTE_INICIAL, RESGATE_INICIAL, CAPTACAO_INICIAL,
 } from '../data/dados';
 import { getAssessores } from '../data/store';
 import { fmtM, iniciais } from '../utils/fmt';
-
-Chart.register(...registerables, ChartDataLabels);
 
 const MESES_DISP = MESES.slice(0, 7);
 
@@ -137,16 +133,6 @@ function TabelaMesMes({ ativos, meses }) {
   );
 }
 
-/* ── Chart hook ── */
-function useChart(ref, buildConfig, deps) {
-  useEffect(() => {
-    if (!ref.current) return;
-    const chart = new Chart(ref.current, buildConfig());
-    return () => chart.destroy();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-}
-
 /* ── Página principal ── */
 export default function FluxoCaptacao() {
   const assessores = getAssessores().filter(a => a.ativo);
@@ -163,97 +149,7 @@ export default function FluxoCaptacao() {
   const somaLiq     = totLiq.reduce((s, v) => s + v, 0);
   const taxaRet     = somaAporte > 0 ? ((somaAporte - somaResgate) / somaAporte) * 100 : 0;
 
-  const retData = ativos.map(a => {
-    const ap  = MESES_DISP.reduce((s, _, i) => s + (APORTE_INICIAL[a.cod]?.[i]  || 0), 0);
-    const res = MESES_DISP.reduce((s, _, i) => s + Math.abs(RESGATE_INICIAL[a.cod]?.[i] || 0), 0);
-    return { ...a, ap, res, taxa: ap > 0 ? ((ap - res) / ap) * 100 : 0 };
-  }).sort((a, b) => b.taxa - a.taxa);
 
-  const refBarMes   = useRef(null);
-  const refLinha    = useRef(null);
-  const refRetencao = useRef(null);
-
-  const tickFmt  = v => fmtM(v);
-  const fmtShort = v => {
-    const abs = Math.abs(v);
-    if (abs >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-    if (abs >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
-    return v.toFixed(0);
-  };
-
-  useChart(refBarMes, () => ({
-    type: 'bar',
-    data: {
-      labels: MESES_DISP,
-      datasets: [
-        { label: 'Aporte',  data: totAporte,               backgroundColor: 'rgba(29,158,117,0.8)', borderRadius: 4 },
-        { label: 'Resgate', data: totResgate.map(Math.abs), backgroundColor: 'rgba(216,90,48,0.8)',  borderRadius: 4 },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtM(c.raw)}` } },
-        datalabels: { color: '#fff', font: { size: 9, weight: '700' }, formatter: fmtShort, anchor: 'center', align: 'center' },
-      },
-      scales: { x: { grid: { display: false } }, y: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } } },
-    },
-  }), [filtro]);
-
-  useChart(refLinha, () => ({
-    type: 'line',
-    data: {
-      labels: MESES_DISP,
-      datasets: [{
-        label: 'Captação Líquida',
-        data: totLiq,
-        borderColor: '#185FA5',
-        pointBackgroundColor: totLiq.map(v => v >= 0 ? '#1D9E75' : '#D85A30'),
-        pointRadius: 5,
-        tension: 0.35,
-        fill: false,
-      }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => `Líq.: ${fmtM(c.raw)}` } },
-        datalabels: {
-          color: ctx => ctx.raw >= 0 ? '#1D9E75' : '#D85A30',
-          font: { size: 9, weight: '700' }, formatter: fmtShort,
-          anchor: 'end', align: ctx => ctx.raw >= 0 ? 'top' : 'bottom', offset: 4,
-        },
-      },
-      scales: { x: { grid: { display: false } }, y: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } } },
-    },
-  }), [filtro]);
-
-  useChart(refRetencao, () => ({
-    type: 'bar',
-    data: {
-      labels: retData.map(a => a.nome.split(' ')[0]),
-      datasets: [{
-        label: 'Taxa de Retenção (%)',
-        data: retData.map(a => a.taxa),
-        backgroundColor: retData.map(a => a.taxa >= 0 ? 'rgba(24,95,165,0.75)' : 'rgba(216,90,48,0.75)'),
-        borderRadius: 4,
-      }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => `Retenção: ${c.raw.toFixed(1)}%` } },
-        datalabels: { color: '#fff', font: { size: 10, weight: '700' }, formatter: v => `${v.toFixed(1)}%`, anchor: 'center', align: 'center' },
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { ticks: { callback: v => `${v.toFixed(0)}%` }, grid: { color: 'rgba(0,0,0,0.05)' } },
-      },
-    },
-  }), [filtro]);
 
   return (
     <>
@@ -280,26 +176,8 @@ export default function FluxoCaptacao() {
         ))}
       </div>
 
-      {/* Gráficos linha 1 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-        <div className="table-card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>Aporte vs Resgate por Mês</div>
-          <div style={{ height: 240 }}><canvas ref={refBarMes} /></div>
-        </div>
-        <div className="table-card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>Captação Líquida Mensal</div>
-          <div style={{ height: 240 }}><canvas ref={refLinha} /></div>
-        </div>
-      </div>
-
       {/* Tabela mês a mês */}
       <TabelaMesMes ativos={ativos} meses={MESES_DISP} />
-
-      {/* Taxa de retenção */}
-      <div className="table-card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>Taxa de Retenção por Assessor (Jan–Jul)</div>
-        <div style={{ height: 230 }}><canvas ref={refRetencao} /></div>
-      </div>
     </>
   );
 }
