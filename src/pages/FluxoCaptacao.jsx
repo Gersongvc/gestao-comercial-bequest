@@ -27,7 +27,10 @@ function AssessorRows({ a, meses }) {
   return (
     <>
       {LINHAS.map((l, li) => {
-        const vals  = meses.map((_, i) => Math.abs(l.src[a.cod]?.[i] || 0) * l.sinal);
+        const vals  = meses.map((_, i) => {
+          const v = l.src[a.cod]?.[i] || 0;
+          return l.sinal === -1 ? -Math.abs(v) : v;
+        });
         const total = vals.reduce((s, v) => s + v, 0);
         const cor   = l.cor || (total >= 0 ? '#1D9E75' : '#D85A30');
         const isFirst = li === 0;
@@ -77,7 +80,10 @@ function TabelaMesMes({ ativos, meses }) {
   const thStyle = { textAlign: 'right', minWidth: 115, fontSize: 11, padding: '6px 8px' };
 
   const totalTime = LINHAS.map(l =>
-    meses.map((_, i) => ativos.reduce((s, a) => s + Math.abs(l.src[a.cod]?.[i] || 0) * l.sinal, 0))
+    meses.map((_, i) => ativos.reduce((s, a) => {
+      const v = l.src[a.cod]?.[i] || 0;
+      return s + (l.sinal === -1 ? -Math.abs(v) : v);
+    }, 0))
   );
 
   return (
