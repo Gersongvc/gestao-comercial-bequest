@@ -13,6 +13,91 @@ Chart.register(...registerables, ChartDataLabels);
 
 const MESES_DISP = MESES.slice(0, 7); // Jan–Jul
 
+const DS_CFG = {
+  aporte:  { label: 'Aporte',          src: APORTE_INICIAL,   cor: 'var(--green)', sinal: 1  },
+  resgate: { label: 'Resgate',         src: RESGATE_INICIAL,  cor: 'var(--red)',   sinal: -1 },
+  liquido: { label: 'Captação Líquida',src: CAPTACAO_INICIAL, cor: null,           sinal: 1  },
+};
+
+function TabelaMesMes({ visao, setVisao, ativos, meses }) {
+  const ds = DS_CFG[visao];
+  const totais = meses.map((_, i) =>
+    ativos.reduce((s, a) => s + Math.abs(ds.src[a.cod]?.[i] || 0) * ds.sinal, 0)
+  );
+  const totalGeral = totais.reduce((s, v) => s + v, 0);
+  const cor = v => ds.cor || (v >= 0 ? 'var(--green)' : 'var(--red)');
+
+  return (
+    <div className="table-card" style={{ marginBottom: 16 }}>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontWeight: 600, fontSize: 13, marginRight: 8 }}>Mês a Mês por Assessor</span>
+        {Object.entries(DS_CFG).map(([k, d]) => (
+          <button
+            key={k}
+            onClick={() => setVisao(k)}
+            style={{
+              padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: visao === k ? (k === 'aporte' ? '#1D9E75' : k === 'resgate' ? '#D85A30' : '#185FA5') : 'var(--surface)',
+              color: visao === k ? '#fff' : 'var(--text2)',
+            }}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style={{ position: 'sticky', left: 0, background: 'var(--surface2)', zIndex: 2, minWidth: 220 }}>Assessor</th>
+              {meses.map(m => <th key={m} style={{ textAlign: 'right', minWidth: 120 }}>{m}</th>)}
+              <th style={{ textAlign: 'right', minWidth: 120 }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ativos.map(a => {
+              const vals = meses.map((_, i) => Math.abs(ds.src[a.cod]?.[i] || 0) * ds.sinal);
+              const total = vals.reduce((s, v) => s + v, 0);
+              return (
+                <tr key={a.cod}>
+                  <td style={{ position: 'sticky', left: 0, background: 'inherit', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="avatar" style={{ background: COR_CIDADE[a.cidade], width: 26, height: 26, fontSize: 9 }}>
+                        {iniciais(a.nome)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: 12 }}>{a.nome}</div>
+                        <span className="cidade-pill" style={{ background: COR_BG[a.cidade], color: COR_CIDADE[a.cidade], fontSize: 10, padding: '1px 6px' }}>
+                          {a.cidade}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  {vals.map((v, i) => (
+                    <td key={i} style={{ textAlign: 'right', fontSize: 12, color: cor(v), fontWeight: 500 }}>
+                      {v === 0 ? <span style={{ color: 'var(--text3)' }}>—</span> : fmtM(v)}
+                    </td>
+                  ))}
+                  <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: cor(total) }}>{fmtM(total)}</td>
+                </tr>
+              );
+            })}
+            <tr className="total-row">
+              <td style={{ position: 'sticky', left: 0, background: 'var(--surface2)', zIndex: 1 }}>TOTAL GERAL</td>
+              {totais.map((v, i) => (
+                <td key={i} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', color: cor(v) }}>{fmtM(v)}</td>
+              ))}
+              <td style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, color: cor(totalGeral) }}>
+                {fmtM(totalGeral)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function useChart(ref, buildConfig, deps) {
   useEffect(() => {
     if (!ref.current) return;
@@ -26,6 +111,7 @@ export default function FluxoCaptacao() {
   const assessores = getAssessores().filter(a => a.ativo);
   const [filtro, setFiltro] = useState('');
   const [mesFiltro, setMesFiltro] = useState('');
+  const [visaoMes, setVisaoMes] = useState('aporte');
 
   const ativos = assessores.filter(a => !filtro || a.cidade === filtro);
 
@@ -57,7 +143,6 @@ export default function FluxoCaptacao() {
   // Charts
   const refBarMes   = useRef(null);
   const refLinha    = useRef(null);
-  const refRank     = useRef(null);
   const refRetencao = useRef(null);
 
   const tickFmt = v => fmtM(v);
@@ -127,32 +212,6 @@ export default function FluxoCaptacao() {
       scales: { x: { grid: { display: false } }, y: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } } },
     },
   }), [filtro]);
-
-  useChart(refRank, () => ({
-    type: 'bar',
-    data: {
-      labels: rankData.map(a => a.nome.split(' ').slice(0, 2).join(' ')),
-      datasets: [
-        { label: 'Aporte',  data: rankData.map(a => a.ap),  backgroundColor: 'rgba(29,158,117,0.8)', borderRadius: 3 },
-        { label: 'Resgate', data: rankData.map(a => a.res), backgroundColor: 'rgba(216,90,48,0.8)',  borderRadius: 3 },
-      ],
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtM(c.raw)}` } },
-        datalabels: {
-          color: '#fff',
-          font: { size: 9, weight: '700' },
-          formatter: fmtShort,
-          anchor: 'center',
-          align: 'center',
-        },
-      },
-      scales: { x: { ticks: { callback: tickFmt }, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } },
-    },
-  }), [filtro, mesFiltro]);
 
   useChart(refRetencao, () => ({
     type: 'bar',
@@ -225,13 +284,13 @@ export default function FluxoCaptacao() {
         </div>
       </div>
 
-      {/* Ranking por assessor */}
-      <div className="table-card" style={{ padding: 16, marginBottom: 16 }}>
-        <div style={{ fontWeight: 600, marginBottom: 10, fontSize: 13 }}>
-          Aporte vs Resgate por Assessor {periodoLabel}
-        </div>
-        <div style={{ height: 380 }}><canvas ref={refRank} /></div>
-      </div>
+      {/* Tabela mês a mês por assessor */}
+      <TabelaMesMes
+        visao={visaoMes}
+        setVisao={setVisaoMes}
+        ativos={ativos}
+        meses={MESES_DISP}
+      />
 
       {/* Taxa de retenção */}
       <div className="table-card" style={{ padding: 16, marginBottom: 16 }}>
