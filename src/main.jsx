@@ -9,6 +9,7 @@ import Captacao from './pages/Captacao';
 import Metas from './pages/Metas';
 import Acompanhamento from './pages/Acompanhamento';
 import DashboardAssessor from './pages/DashboardAssessor';
+import FluxoCaptacao from './pages/FluxoCaptacao';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="metas" element={<Metas />} />
           <Route path="acompanhamento" element={<Acompanhamento />} />
           <Route path="dashboard-assessor" element={<DashboardAssessor />} />
+          <Route path="fluxo-captacao" element={<FluxoCaptacao />} />
         </Route>
       </Routes>
     </HashRouter>

@@ -9,7 +9,8 @@ const NAV = [
   { to: '/custodia',       icon: 'ti-building-bank',     label: 'Custódia' },
   { to: '/captacao',       icon: 'ti-trending-up',       label: 'Captação' },
   { to: '/metas',          icon: 'ti-target',            label: 'Metas' },
-  { to: '/acompanhamento', icon: 'ti-chart-bar',         label: 'Acompanhamento' },
+  { to: '/acompanhamento',  icon: 'ti-chart-bar',         label: 'Acompanhamento' },
+  { to: '/fluxo-captacao', icon: 'ti-arrows-exchange',   label: 'Fluxo Captação' },
 ];
 
 const PAGE_TITLES = {
@@ -19,7 +20,8 @@ const PAGE_TITLES = {
   '/custodia':       'Custódia',
   '/captacao':       'Captação Líquida',
   '/metas':          'Metas',
-  '/acompanhamento': 'Acompanhamento',
+  '/acompanhamento':  'Acompanhamento',
+  '/fluxo-captacao':  'Fluxo de Captação',
 };
 
 export default function Layout() {
