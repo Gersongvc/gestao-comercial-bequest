@@ -1,130 +1,163 @@
 import { useState } from 'react';
-import { getAssessores, setAssessores } from '../data/store.js';
-import { COR_CIDADE, CIDADES } from '../data/dados.js';
-import { initials } from '../utils/fmt.js';
+import { CIDADES, COR_CIDADE, COR_BG } from '../data/dados';
+import { getAssessores, saveAssessores } from '../data/store';
+import { iniciais } from '../utils/fmt';
 
-const BLANK = { cod:'', nome:'', cidade:'JP', ativo:true };
+const EMPTY = { cod: '', nome: '', cidade: 'JP', ativo: true };
 
 export default function Assessores() {
-  const [lista, setLista] = useState(getAssessores());
+  const [assessores, setAssessores] = useState(getAssessores);
   const [filtro, setFiltro] = useState('');
-  const [cidFiltro, setCidFiltro] = useState('');
-  const [modal, setModal] = useState(null); // null | {modo, dados}
+  const [filtroCidade, setFiltroCidade] = useState('');
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState(EMPTY);
 
-  const save = (l) => { setLista(l); setAssessores(l); };
+  const salvar = (list) => { setAssessores(list); saveAssessores(list); };
 
-  const filtrado = lista.filter(a => {
-    if (cidFiltro && a.cidade !== cidFiltro) return false;
-    if (filtro && !a.nome.toLowerCase().includes(filtro.toLowerCase()) && !a.cod.toLowerCase().includes(filtro.toLowerCase())) return false;
-    return true;
+  const filtrados = assessores.filter(a => {
+    const busca = filtro.toLowerCase();
+    const matchNome = a.nome.toLowerCase().includes(busca) || a.cod.toLowerCase().includes(busca);
+    const matchCidade = !filtroCidade || a.cidade === filtroCidade;
+    return matchNome && matchCidade;
   });
 
-  const handleSave = (dados) => {
-    if (modal.modo === 'novo') {
-      save([...lista, dados]);
+  function abrirNovo() { setForm({ ...EMPTY }); setModal('novo'); }
+  function abrirEditar(a) { setForm({ ...a }); setModal('editar'); }
+
+  function confirmarModal() {
+    if (!form.cod.trim() || !form.nome.trim()) return;
+    let novo;
+    if (modal === 'novo') {
+      if (assessores.find(a => a.cod === form.cod)) {
+        alert('Código já existe'); return;
+      }
+      novo = [...assessores, { ...form }];
     } else {
-      save(lista.map(a => a.cod === modal.dados.cod ? dados : a));
+      novo = assessores.map(a => a.cod === form.cod ? { ...form } : a);
     }
+    salvar(novo);
     setModal(null);
-  };
+  }
 
-  const handleRemove = (cod) => {
-    if (confirm('Remover assessor?')) save(lista.filter(a => a.cod !== cod));
-  };
+  function remover(cod) {
+    if (!confirm('Remover este assessor?')) return;
+    salvar(assessores.filter(a => a.cod !== cod));
+  }
 
-  const contPorCidade = Object.keys(CIDADES).map(c => ({
-    c, n: lista.filter(a => a.cidade === c && a.ativo).length
-  }));
+  const contPorCidade = Object.fromEntries(
+    Object.keys(CIDADES).map(c => [c, assessores.filter(a => a.cidade === c && a.ativo).length])
+  );
 
   return (
-    <div>
-      <div className="kpi-row" style={{marginBottom:16}}>
-        {contPorCidade.map(({c, n}) => (
-          <div key={c} className="kpi-card" style={{borderTop:`3px solid ${COR_CIDADE[c]}`}}>
-            <div className="kpi-label">{CIDADES[c]}</div>
-            <div className="kpi-value">{n}</div>
+    <>
+      <div className="kpi-grid">
+        {Object.entries(CIDADES).map(([cod, nome]) => (
+          <div key={cod} className="kpi-card" style={{ borderLeft: `4px solid ${COR_CIDADE[cod]}` }}>
+            <div className="kpi-label">{nome}</div>
+            <div className="kpi-value" style={{ color: COR_CIDADE[cod] }}>{contPorCidade[cod]}</div>
             <div className="kpi-sub">assessores ativos</div>
           </div>
         ))}
       </div>
 
-      <div className="toolbar">
-        <input className="search-input" placeholder="Buscar por nome ou código..." value={filtro} onChange={e=>setFiltro(e.target.value)}/>
-        <select className="select-sm" value={cidFiltro} onChange={e=>setCidFiltro(e.target.value)}>
+      <div className="filters-bar">
+        <input
+          placeholder="Buscar nome ou código..."
+          value={filtro}
+          onChange={e => setFiltro(e.target.value)}
+          style={{ width: 240 }}
+        />
+        <select value={filtroCidade} onChange={e => setFiltroCidade(e.target.value)}>
           <option value="">Todas as cidades</option>
-          {Object.entries(CIDADES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
+          {Object.entries(CIDADES).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
         </select>
-        <button className="btn-primary" onClick={()=>setModal({modo:'novo',dados:{...BLANK}})}>
-          <i className="ti ti-plus"></i> Novo Assessor
+        <button className="btn btn-primary" onClick={abrirNovo} style={{ marginLeft: 'auto' }}>
+          <i className="ti ti-plus" /> Novo Assessor
         </button>
       </div>
 
       <div className="table-card">
-        <table className="data-table">
-          <thead><tr><th>Assessor</th><th>Código</th><th>Cidade</th><th>Status</th><th>Ações</th></tr></thead>
+        <table>
+          <thead>
+            <tr>
+              <th>Assessor</th>
+              <th>Código</th>
+              <th>Cidade</th>
+              <th>Status</th>
+              <th style={{ textAlign: 'right' }}>Ações</th>
+            </tr>
+          </thead>
           <tbody>
-            {filtrado.map(a => (
+            {filtrados.map(a => (
               <tr key={a.cod}>
                 <td>
                   <div className="assessor-cell">
-                    <span className="avatar" style={{background:COR_CIDADE[a.cidade]+'33',color:COR_CIDADE[a.cidade]}}>{initials(a.nome)}</span>
-                    <span className="assessor-nome">{a.nome}</span>
+                    <div className="avatar" style={{ background: a.ativo ? COR_CIDADE[a.cidade] : '#C8CFE0' }}>
+                      {iniciais(a.nome)}
+                    </div>
+                    <span style={{ fontWeight: 500 }}>{a.nome}</span>
                   </div>
                 </td>
-                <td><code>{a.cod}</code></td>
-                <td><span className="city-pill" style={{background:COR_CIDADE[a.cidade]+'22',color:COR_CIDADE[a.cidade]}}>{CIDADES[a.cidade]}</span></td>
-                <td><span className={`status-pill ${a.ativo?'green':'red'}`}>{a.ativo?'Ativo':'Inativo'}</span></td>
+                <td style={{ color: 'var(--text3)', fontFamily: 'monospace' }}>{a.cod}</td>
                 <td>
-                  <button className="btn-icon" onClick={()=>setModal({modo:'editar',dados:{...a}})} title="Editar"><i className="ti ti-pencil"></i></button>
-                  <button className="btn-icon danger" onClick={()=>handleRemove(a.cod)} title="Remover"><i className="ti ti-trash"></i></button>
+                  <span className="cidade-pill" style={{ background: COR_BG[a.cidade], color: COR_CIDADE[a.cidade] }}>
+                    {CIDADES[a.cidade]}
+                  </span>
+                </td>
+                <td>
+                  <span className={`badge ${a.ativo ? 'badge-green' : 'badge-gray'}`}>
+                    {a.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
+                <td style={{ textAlign: 'right' }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => abrirEditar(a)} style={{ marginRight: 6 }}>
+                    <i className="ti ti-edit" /> Editar
+                  </button>
+                  <button className="btn btn-danger btn-sm" onClick={() => remover(a.cod)}>
+                    <i className="ti ti-trash" />
+                  </button>
                 </td>
               </tr>
             ))}
+            {filtrados.length === 0 && (
+              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>Nenhum assessor encontrado</td></tr>
+            )}
           </tbody>
         </table>
       </div>
 
       {modal && (
-        <div className="modal-overlay" onClick={()=>setModal(null)}>
-          <div className="modal" onClick={e=>e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{modal.modo==='novo'?'Novo Assessor':'Editar Assessor'}</h2>
-              <button className="btn-icon" onClick={()=>setModal(null)}><i className="ti ti-x"></i></button>
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>{modal === 'novo' ? 'Novo Assessor' : 'Editar Assessor'}</h3>
+            <div className="form-group">
+              <label>Código</label>
+              <input value={form.cod} onChange={e => setForm(f => ({ ...f, cod: e.target.value }))} disabled={modal === 'editar'} placeholder="A00000" />
             </div>
-            <ModalForm dados={modal.dados} onSave={handleSave} onCancel={()=>setModal(null)}/>
+            <div className="form-group">
+              <label>Nome completo</label>
+              <input value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} placeholder="Nome do assessor" />
+            </div>
+            <div className="form-group">
+              <label>Cidade</label>
+              <select value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))}>
+                {Object.entries(CIDADES).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Status</label>
+              <select value={form.ativo ? 'true' : 'false'} onChange={e => setForm(f => ({ ...f, ativo: e.target.value === 'true' }))}>
+                <option value="true">Ativo</option>
+                <option value="false">Inativo</option>
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setModal(null)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={confirmarModal}>Salvar</button>
+            </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function ModalForm({ dados, onSave, onCancel }) {
-  const [form, setForm] = useState({...dados});
-  const set = (k, v) => setForm(f => ({...f, [k]:v}));
-  return (
-    <div className="modal-body">
-      <div className="form-group"><label>Código</label>
-        <input className="form-input" value={form.cod} onChange={e=>set('cod',e.target.value)} placeholder="Ex: A12345"/>
-      </div>
-      <div className="form-group"><label>Nome</label>
-        <input className="form-input" value={form.nome} onChange={e=>set('nome',e.target.value)} placeholder="Nome completo"/>
-      </div>
-      <div className="form-group"><label>Cidade</label>
-        <select className="form-input" value={form.cidade} onChange={e=>set('cidade',e.target.value)}>
-          {Object.entries(CIDADES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
-        </select>
-      </div>
-      <div className="form-group"><label>Status</label>
-        <select className="form-input" value={form.ativo?'1':'0'} onChange={e=>set('ativo',e.target.value==='1')}>
-          <option value="1">Ativo</option>
-          <option value="0">Inativo</option>
-        </select>
-      </div>
-      <div className="modal-actions">
-        <button className="btn-ghost" onClick={onCancel}>Cancelar</button>
-        <button className="btn-primary" onClick={()=>onSave(form)}>Salvar</button>
-      </div>
-    </div>
+    </>
   );
 }

@@ -1,25 +1,45 @@
-export const fmtBRL = (v, compact = false) => {
-  if (!v && v !== 0) return '—';
-  if (compact) {
-    const abs = Math.abs(v);
-    let s;
-    if (abs >= 1e9) s = (v / 1e9).toFixed(1) + ' B';
-    else if (abs >= 1e6) s = (v / 1e6).toFixed(1) + ' M';
-    else if (abs >= 1e3) s = (v / 1e3).toFixed(0) + ' K';
-    else s = v.toFixed(0);
-    return 'R$ ' + s;
-  }
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
-};
+const BRL = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
-export const fmtPct = (v) => {
-  if (!v && v !== 0) return '—';
-  return v.toFixed(1) + '%';
-};
+const BRL0 = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
 
-export const initials = (nome) => {
-  const parts = nome.trim().split(' ');
-  return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
-};
+/* Custódia e valores positivos — R$ 154.300.212,71 */
+export function fmtBRL(v, decimals = 2) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return decimals === 0 ? BRL0.format(v) : BRL.format(v);
+}
 
-export const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+/* Alias para custódia (mantém compatibilidade com código existente) */
+export function fmtMCustodia(v) {
+  if (v === null || v === undefined || isNaN(v) || v === 0) return '—';
+  return BRL.format(v);
+}
+
+/* Captação (pode ser negativa) — mostra sinal explícito: +R$ 1.116.567,33 ou −R$ 657.433,72 */
+export function fmtM(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  if (v === 0) return 'R$ 0,00';
+  const sign = v > 0 ? '+' : '−';
+  return `${sign}${BRL.format(Math.abs(v))}`;
+}
+
+export function fmtPct(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return `${v.toFixed(1)}%`;
+}
+
+export function iniciais(nome) {
+  if (!nome) return '?';
+  const partes = nome.trim().split(' ');
+  if (partes.length === 1) return partes[0][0].toUpperCase();
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+}
