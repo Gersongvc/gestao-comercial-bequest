@@ -188,16 +188,16 @@ function TabelaMetas({ assessores, dados, setDados, tipo, filtro, deltaCustTeam,
                 Peso %
               </th>
               <th style={{ textAlign: 'right', minWidth: 130, background: '#FFFBF0', color: 'var(--amber)', fontSize: 10 }}>
-                Base 2025
+                Base {new Date().getFullYear() - 1}
               </th>
               <th style={{ textAlign: 'right', minWidth: 130, background: '#F0FAF5', color: 'var(--green)', fontSize: 10 }}>
-                {isCust ? 'Alvo Dez/26' : 'Alvo Anual 26'}
+                {isCust ? `Alvo Dez/${String(new Date().getFullYear()).slice(2)}` : `Alvo Anual ${String(new Date().getFullYear()).slice(2)}`}
               </th>
               {MESES.map((m, i) => (
-                <th key={i} style={{ textAlign: 'right', minWidth: 155 }}>{m}/26</th>
+                <th key={i} style={{ textAlign: 'right', minWidth: 155 }}>{m}/{String(new Date().getFullYear()).slice(2)}</th>
               ))}
               <th style={{ textAlign: 'right', minWidth: 130 }}>
-                {isCust ? 'Meta Dez/26' : 'Total Anual'}
+                {isCust ? `Meta Dez/${String(new Date().getFullYear()).slice(2)}` : 'Total Anual'}
               </th>
             </tr>
           </thead>
@@ -382,7 +382,7 @@ export default function Metas() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Metas ${isCust ? 'Custódia' : 'Captação'}`);
-    XLSX.writeFile(wb, `metas_${tipo}_2026.xlsx`);
+    XLSX.writeFile(wb, `metas_${tipo}_${new Date().getFullYear()}.xlsx`);
   }
 
   return (
@@ -390,24 +390,24 @@ export default function Metas() {
       {/* ── KPIs ── */}
       <div className="kpi-grid" style={{ marginBottom: 20 }}>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--amber)' }}>
-          <div className="kpi-label">Base Custódia Dez/2025</div>
+          <div className="kpi-label">Base Custódia Dez/{new Date().getFullYear() - 1}</div>
           <div className="kpi-value" style={{ fontSize: 18 }}>{fmtMCustodia(totalBase)}</div>
           <div className="kpi-sub">posição final do time</div>
         </div>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--blue)' }}>
-          <div className="kpi-label">Alvo Custódia Dez/2026</div>
+          <div className="kpi-label">Alvo Custódia Dez/{new Date().getFullYear()}</div>
           <div className="kpi-value" style={{ color: 'var(--blue)', fontSize: 18 }}>{fmtMCustodia(alvoCustTeam)}</div>
           <div className="kpi-sub">
             {paramCustTipo === 'pct' ? `+${paramCustVal}%` : 'valor fixo'} → delta +{fmtMCustodia(deltaCustTeam)}
           </div>
         </div>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--amber)' }}>
-          <div className="kpi-label">Base Captação 2025</div>
+          <div className="kpi-label">Base Captação {new Date().getFullYear() - 1}</div>
           <div className="kpi-value" style={{ fontSize: 18 }}>{fmtM(totalCap)}</div>
           <div className="kpi-sub">saldo líquido anual do time</div>
         </div>
         <div className="kpi-card" style={{ borderLeft: '4px solid var(--green)' }}>
-          <div className="kpi-label">Alvo Captação Anual 2026</div>
+          <div className="kpi-label">Alvo Captação Anual {new Date().getFullYear()}</div>
           <div className="kpi-value" style={{ color: 'var(--green)', fontSize: 18 }}>{fmtM(alvoCapTeam)}</div>
           <div className="kpi-sub">
             {paramCapTipo === 'pct' ? `+${paramCapVal}%` : 'valor fixo'} → delta +{fmtM(deltaCapTeam)}
@@ -428,7 +428,7 @@ export default function Metas() {
         border: '1px solid var(--border)',
       }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', gridColumn: '1/-1', marginBottom: 2 }}>
-          <i className="ti ti-settings" style={{ marginRight: 6 }} />Parâmetros — Gerar Metas Automáticas 2026
+          <i className="ti ti-settings" style={{ marginRight: 6 }} />Parâmetros — Gerar Metas Automáticas {new Date().getFullYear()}
         </div>
         <div style={{ fontSize: 11, color: 'var(--text3)', gridColumn: '1/-1', marginBottom: 8 }}>
           Configure abaixo e clique em "Gerar metas" para distribuir automaticamente pelo peso da carteira.
@@ -528,7 +528,7 @@ export default function Metas() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <button className="btn btn-outline" onClick={handleGerar}>
             <i className={`ti ${gerado ? 'ti-check' : 'ti-wand'}`} />
-            {gerado ? 'Gerado!' : `Gerar metas ${isCust ? 'custódia' : 'captação'} 2026`}
+            {gerado ? 'Gerado!' : `Gerar metas ${isCust ? 'custódia' : 'captação'} ${new Date().getFullYear()}`}
           </button>
           <button className="btn btn-outline" onClick={exportar}>
             <i className="ti ti-file-spreadsheet" /> Excel

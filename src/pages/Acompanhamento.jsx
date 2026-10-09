@@ -32,7 +32,7 @@ function ProgressBar({ pct, markerPct }) {
 
 /* ── Tab: Ranking ── */
 function Ranking({ assessores, custodia, metas }) {
-  const [mes, setMes] = useState(4);
+  const [mes, setMes] = useState(new Date().getMonth());
   const [filtro, setFiltro] = useState('');
 
   const lista = assessores

@@ -266,7 +266,7 @@ function TabCustodia({ assessores, custodia, metasCust, mes, setMes, periodo }) 
           icon="ti-flag"
           label="Alvo Dez/2026"
           value={fmtMCustodia(totalAlvo2026)}
-          sub="+21% sobre posição final 2025"
+          sub={`+${(CRESCIMENTO_CUSTODIA_2026 * 100).toFixed(0)}% sobre posição final ${new Date().getFullYear() - 1}`}
         />
       </div>
 
@@ -542,7 +542,7 @@ function TabCaptacao({ assessores, captacao, metasCap, mes, setMes, periodo }) {
           icon="ti-flag"
           label="Meta Anual Captação 2026"
           value={fmtM(metaAnualTotal)}
-          sub="+25% sobre captação 2025"
+          sub={`+${(CRESCIMENTO_CAPTACAO_2026 * 100).toFixed(0)}% sobre captação ${new Date().getFullYear() - 1}`}
         />
       </div>
 

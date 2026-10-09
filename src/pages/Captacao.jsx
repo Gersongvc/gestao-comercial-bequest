@@ -77,7 +77,7 @@ export default function Captacao() {
           {Object.entries(CIDADES).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
         </select>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={handleImportarBase} title="Carrega os dados da planilha Consolidação.xlsx (Jan–Jul/2026)">
+          <button className="btn btn-outline" onClick={handleImportarBase} title="Carrega os dados da planilha Consolidação.xlsx">
             <i className={`ti ${imported ? 'ti-check' : 'ti-table-import'}`} /> {imported ? 'Importado!' : 'Importar base'}
           </button>
           <button className="btn btn-outline" onClick={exportar}><i className="ti ti-file-spreadsheet" /> Exportar Excel</button>

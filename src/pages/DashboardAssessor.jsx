@@ -422,7 +422,7 @@ export default function DashboardAssessor() {
           icon="ti-building-bank"
           label={`Custódia — ${MESES_FULL[mes]}`}
           value={fmtMCustodia(custMes)}
-          sub={`base Dez/2025: ${fmtMCustodia(base2025)}`}
+          sub={`base Dez/${new Date().getFullYear() - 1}: ${fmtMCustodia(base2025)}`}
           cor={COR_CIDADE[assessor.cidade]}
         />
         <KCard
@@ -471,7 +471,7 @@ export default function DashboardAssessor() {
           icon="ti-flag"
           label="Alvo Captação Anual 2026"
           value={fmtM(metaCapAnual)}
-          sub={`+25% sobre 2025`}
+          sub={`+${(CRESCIMENTO_CAPTACAO_2026 * 100).toFixed(0)}% sobre ${new Date().getFullYear() - 1}`}
           cor="#7F77DD"
         />
       </div>
