@@ -4,6 +4,7 @@ import {
   MESES, MESES_FULL, CIDADES, COR_CIDADE, COR_BG,
   CUSTODIA_FINAL_2025, CAPTACAO_TOTAL_2025,
   CRESCIMENTO_CUSTODIA_2026, CRESCIMENTO_CAPTACAO_2026,
+  ANO_BASE, ANO_ATUAL,
 } from '../data/dados';
 import { getAssessores, getCustodia, getCaptacao, getMetasCustodia, getMetasCaptacao } from '../data/store';
 import { fmtMCustodia, fmtM, fmtPct, iniciais } from '../utils/fmt';
@@ -115,10 +116,10 @@ function TabCustodia({ assessores, custodia, metasCust, mes, setMes, periodo }) 
     ? Array.from({ length: 12 }, (_, k) => {
         const offset = k - 11;
         const mesIdx = ((mesAtualDash + offset) % 12 + 12) % 12;
-        const ano    = mesAtualDash + offset < 0 ? 2025 : 2026;
+        const ano    = mesAtualDash + offset < 0 ? ANO_BASE : ANO_ATUAL;
         return { label: `${MESES[mesIdx]}/${String(ano).slice(2)}`, ano, mes: mesIdx };
       })
-    : MESES.map((m, i) => ({ label: m, ano: 2026, mes: i }));
+    : MESES.map((m, i) => ({ label: m, ano: ANO_ATUAL, mes: i }));
 
   // Gráfico 1 — linha por cidade
   useChart(lineRef, canvas => new Chart(canvas, {
@@ -128,7 +129,7 @@ function TabCustodia({ assessores, custodia, metasCust, mes, setMes, periodo }) 
       datasets: Object.keys(CIDADES).map(c => ({
         label: CIDADES[c],
         data: slots12.map(s => {
-          if (s.ano === 2025) return ativos.filter(a => a.cidade === c).reduce((sum, a) => sum + (CUSTODIA_FINAL_2025[a.cod] || 0), 0);
+          if (s.ano === ANO_BASE) return ativos.filter(a => a.cidade === c).reduce((sum, a) => sum + (CUSTODIA_FINAL_2025[a.cod] || 0), 0);
           return ativos.filter(a => a.cidade === c).reduce((sum, a) => sum + (custodia[a.cod]?.[s.mes] || 0), 0);
         }),
         borderColor: COR_CIDADE[c], backgroundColor: 'transparent',
@@ -246,27 +247,27 @@ function TabCustodia({ assessores, custodia, metasCust, mes, setMes, periodo }) 
           icon="ti-building-bank"
           label={`Custódia Total — ${MESES_FULL[mes]}`}
           value={fmtMCustodia(totalCustodiaMes)}
-          sub={`base Dez/2025: ${fmtMCustodia(totalBase2025)}`}
+          sub={`base Dez/${ANO_BASE}: ${fmtMCustodia(totalBase2025)}`}
         />
         <KpiCard
           icon="ti-target"
-          label="% Meta Custódia 2026"
+          label={`% Meta Custódia ${ANO_ATUAL}`}
           value={pctMetaMes !== null ? fmtPct(pctMetaMes) : '—'}
           sub={`alvo ${MESES_FULL[mes]}: ${fmtMCustodia(totalMetaMes)}`}
           variant={pctMetaMes === null ? '' : pctMetaMes >= 100 ? 'positive' : pctMetaMes >= 80 ? '' : 'negative'}
         />
         <KpiCard
           icon="ti-chart-line"
-          label="Crescimento vs Dez/2025"
+          label={`Crescimento vs Dez/${ANO_BASE}`}
           value={crescimento !== null ? fmtPct(crescimento) : '—'}
-          sub="variação sobre base 2025"
+          sub={`variação sobre base ${ANO_BASE}`}
           variant={crescimento !== null ? (crescimento >= 0 ? 'positive' : 'negative') : ''}
         />
         <KpiCard
           icon="ti-flag"
-          label="Alvo Dez/2026"
+          label={`Alvo Dez/${ANO_ATUAL}`}
           value={fmtMCustodia(totalAlvo2026)}
-          sub={`+${(CRESCIMENTO_CUSTODIA_2026 * 100).toFixed(0)}% sobre posição final ${new Date().getFullYear() - 1}`}
+          sub={`+${(CRESCIMENTO_CUSTODIA_2026 * 100).toFixed(0)}% sobre posição final ${ANO_BASE}`}
         />
       </div>
 
@@ -374,28 +375,28 @@ function TabCaptacao({ assessores, captacao, metasCap, mes, setMes, periodo }) {
     ? Array.from({ length: 12 }, (_, k) => {
         const offset = k - 11;
         const mesIdx = ((mesAtualDash + offset) % 12 + 12) % 12;
-        const ano    = mesAtualDash + offset < 0 ? 2025 : 2026;
+        const ano    = mesAtualDash + offset < 0 ? ANO_BASE : ANO_ATUAL;
         return { label: `${MESES[mesIdx]}/${String(ano).slice(2)}`, ano, mes: mesIdx };
       })
-    : MESES.map((m, i) => ({ label: m, ano: 2026, mes: i }));
+    : MESES.map((m, i) => ({ label: m, ano: ANO_ATUAL, mes: i }));
 
   // Captação acumulada para gráfico (respeita slots e período)
   let _acumR = 0, _acumM = 0;
   const acumReal = slotsC.map(s => {
-    if (s.ano === 2025) return null;
+    if (s.ano === ANO_BASE) return null;
     if (s.mes > mes) return null;
     _acumR += ativos.reduce((ss, a) => ss + (captacao[a.cod]?.[s.mes] || 0), 0);
     return _acumR;
   });
   const acumMeta = slotsC.map(s => {
-    if (s.ano === 2025) return 0;
+    if (s.ano === ANO_BASE) return 0;
     _acumM += ativos.reduce((ss, a) => ss + (metasCap[a.cod]?.[s.mes] || 0), 0);
     return _acumM;
   });
 
   // Saldo mensal por slot
   const saldoMensal = slotsC.map(s => {
-    if (s.ano === 2025) return null;
+    if (s.ano === ANO_BASE) return null;
     if (s.mes > mes) return null;
     const real = ativos.reduce((ss, a) => ss + (captacao[a.cod]?.[s.mes] || 0), 0);
     const meta = ativos.reduce((ss, a) => ss + (metasCap[a.cod]?.[s.mes] || 0), 0);
@@ -430,7 +431,7 @@ function TabCaptacao({ assessores, captacao, metasCap, mes, setMes, periodo }) {
       datasets: Object.keys(CIDADES).map(c => ({
         label: CIDADES[c],
         data: slotsC.map(s => {
-          if (s.ano === 2025) return null;
+          if (s.ano === ANO_BASE) return null;
           if (s.mes > mes) return null;
           return ativos.filter(a => a.cidade === c).reduce((ss, a) => ss + (captacao[a.cod]?.[s.mes] || 0), 0);
         }),
@@ -540,9 +541,9 @@ function TabCaptacao({ assessores, captacao, metasCap, mes, setMes, periodo }) {
         />
         <KpiCard
           icon="ti-flag"
-          label="Meta Anual Captação 2026"
+          label={`Meta Anual Captação ${ANO_ATUAL}`}
           value={fmtM(metaAnualTotal)}
-          sub={`+${(CRESCIMENTO_CAPTACAO_2026 * 100).toFixed(0)}% sobre captação ${new Date().getFullYear() - 1}`}
+          sub={`+${(CRESCIMENTO_CAPTACAO_2026 * 100).toFixed(0)}% sobre captação ${ANO_BASE}`}
         />
       </div>
 

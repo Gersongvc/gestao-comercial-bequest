@@ -80,6 +80,12 @@ export const CAPTACAO_TOTAL_2025 = {
   A70750:        0.00,
 };
 
+// ─── Ano de trabalho ────────────────────────────────────────────────────────
+// Única linha que precisa mudar na virada do ano.
+// ANO_BASE = ano encerrado com dados históricos; ANO_ATUAL = ano em curso.
+export const ANO_BASE  = 2025;
+export const ANO_ATUAL = 2026;
+
 // Metas de crescimento 2026
 export const CRESCIMENTO_CUSTODIA_2026  = 0.21; // +21% sobre posição final 2025
 export const CRESCIMENTO_CAPTACAO_2026  = 0.25; // +25% sobre captação total 2025

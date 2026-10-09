@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { MESES, MESES_FULL, CIDADES, COR_CIDADE, COR_BG, META_XP_CONSOLIDADO, META_PESSOAL_CONSOLIDADO, CUSTODIA_FINAL_2025, CAPTACAO_TOTAL_2025, CRESCIMENTO_CUSTODIA_2026, CRESCIMENTO_CAPTACAO_2026 } from '../data/dados';
+import { MESES, MESES_FULL, CIDADES, COR_CIDADE, COR_BG, META_XP_CONSOLIDADO, META_PESSOAL_CONSOLIDADO, CUSTODIA_FINAL_2025, CAPTACAO_TOTAL_2025, CRESCIMENTO_CUSTODIA_2026, CRESCIMENTO_CAPTACAO_2026, ANO_BASE, ANO_ATUAL } from '../data/dados';
 import { getAssessores, getCustodia, getCaptacao, getMetasCustodia, getMetasCaptacao } from '../data/store';
 import { fmtMCustodia, fmtM, fmtPct, iniciais } from '../utils/fmt';
 
@@ -168,13 +168,13 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
 
   // Colunas dinâmicas: Ano Atual (Jan-Dez) ou Últimos 12 meses (rolling)
   const colunas = periodo === 'ano'
-    ? MESES.map((m, i) => ({ label: m, ano: 2026, mes: i }))
+    ? MESES.map((m, i) => ({ label: m, ano: ANO_ATUAL, mes: i }))
     : (() => {
         const slots = [];
         for (let k = 0; k < 12; k++) {
           const offset = k - 11;
           const mesIdx = ((mesAtual + offset) % 12 + 12) % 12;
-          const ano    = mesAtual + offset < 0 ? 2025 : 2026;
+          const ano    = mesAtual + offset < 0 ? ANO_BASE : ANO_ATUAL;
           slots.push({ label: `${MESES[mesIdx]}/${String(ano).slice(2)}`, ano, mes: mesIdx });
         }
         return slots;
@@ -182,14 +182,14 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
 
   // Slot-aware: para meses de 2025 só temos o estoque final (Dez/25) e sem meta mensal
   function realValS(cod, slot) {
-    if (slot.ano === 2025) {
+    if (slot.ano === ANO_BASE) {
       if (isCust && modo === 'acumulado') return CUSTODIA_FINAL_2025[cod] || 0;
       return 0;
     }
     return realVal(cod, slot.mes);
   }
   function metaValS(cod, slot) {
-    if (slot.ano === 2025) return 0;
+    if (slot.ano === ANO_BASE) return 0;
     return metaVal(cod, slot.mes);
   }
   // Objetivo ajustado: em modo mensal com rollover ativo, soma o déficit do mês anterior
@@ -201,7 +201,7 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
       const adj  = metaValS(cod, slot) + carry;
       if (j === k) return adj;
       // Só arrasta déficit de meses passados/correntes, não de meses futuros
-      const isPastOrCurrent = slot.ano < 2026 || slot.mes <= mesAtual;
+      const isPastOrCurrent = slot.ano < ANO_ATUAL || slot.mes <= mesAtual;
       if (isPastOrCurrent) carry = Math.max(0, adj - realValS(cod, slot));
     }
     return 0;
@@ -338,18 +338,18 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
               <th style={{ position: 'sticky', left: 0, background: 'var(--surface2)', zIndex: 2, minWidth: 240 }}>Assessor</th>
               <th style={{ position: 'sticky', left: 240, background: 'var(--surface2)', zIndex: 2, minWidth: 90, fontSize: 10 }}>Linha</th>
               <th style={{ textAlign: 'right', minWidth: 130, background: '#FFFBF0', color: 'var(--amber)', fontSize: 10, whiteSpace: 'nowrap' }}>
-                Base 2025
+                Base {ANO_BASE}
               </th>
               <th style={{ textAlign: 'right', minWidth: 130, background: '#F0FAF5', color: 'var(--green)', fontSize: 10, whiteSpace: 'nowrap' }}>
-                {isCust ? 'Meta Dez/2026' : 'Meta Anual 2026'}
+                {isCust ? `Meta Dez/${ANO_ATUAL}` : `Meta Anual ${ANO_ATUAL}`}
               </th>
               {colunas.map((slot, k) => {
-                const isHl = slot.ano === 2026 && slot.mes === mesAtual;
+                const isHl = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                 return (
                   <th key={k} style={{
                     textAlign: 'right', minWidth: 155,
-                    background: isHl ? '#EEF3FC' : slot.ano === 2025 ? '#FDF9F0' : undefined,
-                    color: isHl ? 'var(--blue)' : slot.ano === 2025 ? 'var(--amber)' : undefined,
+                    background: isHl ? '#EEF3FC' : slot.ano === ANO_BASE ? '#FDF9F0' : undefined,
+                    color: isHl ? 'var(--blue)' : slot.ano === ANO_BASE ? 'var(--amber)' : undefined,
                   }}>
                     {slot.label}{isHl ? ' ◀' : ''}
                   </th>
@@ -420,9 +420,9 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
                     </td>
                     {colunas.map((slot, k) => {
                       const v = realValS(a.cod, slot);
-                      const isHl = slot.ano === 2026 && slot.mes === mesAtual;
+                      const isHl = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                       return (
-                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontSize: 12, fontWeight: 500, background: isHl ? '#F0F5FF' : slot.ano === 2025 ? '#FDFAF3' : undefined }}>
+                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontSize: 12, fontWeight: 500, background: isHl ? '#F0F5FF' : slot.ano === ANO_BASE ? '#FDFAF3' : undefined }}>
                           {fmtVal(v)}
                         </td>
                       );
@@ -452,9 +452,9 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
                     {colunas.map((slot, k) => {
                       const v        = metaAjustadoS(a.cod, k);
                       const hasCarry = rollover && modo === 'mensal' && v > metaValS(a.cod, slot);
-                      const isHl     = slot.ano === 2026 && slot.mes === mesAtual;
+                      const isHl     = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                       return (
-                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontSize: 12, color: 'var(--text3)', background: hasCarry ? '#FFF3E0' : isHl ? '#F8F9FE' : slot.ano === 2025 ? '#FDFAF3' : '#FAFBFD' }}>
+                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontSize: 12, color: 'var(--text3)', background: hasCarry ? '#FFF3E0' : isHl ? '#F8F9FE' : slot.ano === ANO_BASE ? '#FDFAF3' : '#FAFBFD' }}>
                           {v !== 0 ? fmtVal(v) : <span style={{ color: '#C8CFE0' }}>—</span>}
                           {hasCarry && <span style={{ fontSize: 8, color: '#E65100', marginLeft: 2, verticalAlign: 'super' }}>↑carry</span>}
                         </td>
@@ -470,15 +470,15 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
                     {colunas.map((slot, k) => {
                       const real  = realValS(a.cod, slot);
                       const obj   = metaAjustadoS(a.cod, k);
-                      const isHl  = slot.ano === 2026 && slot.mes === mesAtual;
+                      const isHl  = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                       if (!real && !obj) return (
-                        <td key={k} style={{ textAlign: 'right', background: isHl ? '#F0F5FF' : slot.ano === 2025 ? '#FDFAF3' : '#F4F6FB' }}>
+                        <td key={k} style={{ textAlign: 'right', background: isHl ? '#F0F5FF' : slot.ano === ANO_BASE ? '#FDFAF3' : '#F4F6FB' }}>
                           <span style={{ color: '#C8CFE0', fontSize: 12 }}>—</span>
                         </td>
                       );
                       const saldo = real - obj;
                       return (
-                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontSize: 12, fontWeight: 700, background: isHl ? '#EEF3FC' : slot.ano === 2025 ? '#FDFAF3' : '#F4F6FB' }}>
+                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontSize: 12, fontWeight: 700, background: isHl ? '#EEF3FC' : slot.ano === ANO_BASE ? '#FDFAF3' : '#F4F6FB' }}>
                           {fmtVal(saldo, true)}
                         </td>
                       );
@@ -519,9 +519,9 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
                       {isCust ? fmtMCustodia(totalMeta2026) : <span className={totalMeta2026 >= 0 ? 'val-pos' : 'val-neg'}>{fmtM(totalMeta2026)}</span>}
                     </td>
                     {colunas.map((slot, k) => {
-                      const isHl = slot.ano === 2026 && slot.mes === mesAtual;
+                      const isHl = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                       return (
-                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, background: isHl ? '#EEF3FC' : slot.ano === 2025 ? '#FDF9F0' : 'var(--surface2)' }}>
+                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, background: isHl ? '#EEF3FC' : slot.ano === ANO_BASE ? '#FDF9F0' : 'var(--surface2)' }}>
                           {fmtVal(totalRealizadoS(k))}
                         </td>
                       );
@@ -547,9 +547,9 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
                     <td style={{ position: 'sticky', left: 240, background: '#F5F5F5', zIndex: 1, fontSize: 11, fontWeight: 500, color: 'var(--text3)', borderRight: '1px solid var(--border)' }}>○ Objetivo</td>
                     {colunas.map((slot, k) => {
                       const v = totalObjetivoS(k);
-                      const isHl = slot.ano === 2026 && slot.mes === mesAtual;
+                      const isHl = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                       return (
-                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', color: 'var(--text3)', background: isHl ? '#F8F9FE' : slot.ano === 2025 ? '#FDF9F0' : '#FAFBFD' }}>
+                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', color: 'var(--text3)', background: isHl ? '#F8F9FE' : slot.ano === ANO_BASE ? '#FDF9F0' : '#FAFBFD' }}>
                           {v !== 0 ? fmtVal(v) : <span style={{ color: '#C8CFE0' }}>—</span>}
                         </td>
                       );
@@ -561,9 +561,9 @@ function MesAMes({ assessores, custodia, captacao, metasCust, metasCap }) {
                     {colunas.map((slot, k) => {
                       const s = totalSaldoS(k);
                       const hasData = totalRealizadoS(k) !== 0 || totalObjetivoS(k) !== 0;
-                      const isHl = slot.ano === 2026 && slot.mes === mesAtual;
+                      const isHl = slot.ano === ANO_ATUAL && slot.mes === mesAtual;
                       return (
-                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, background: isHl ? '#EEF3FC' : slot.ano === 2025 ? '#FDF9F0' : '#F4F6FB' }}>
+                        <td key={k} style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, background: isHl ? '#EEF3FC' : slot.ano === ANO_BASE ? '#FDF9F0' : '#F4F6FB' }}>
                           {hasData ? fmtVal(s, true) : <span style={{ color: '#C8CFE0' }}>—</span>}
                         </td>
                       );
@@ -831,7 +831,7 @@ function PorCidade({ assessores, custodia, captacao, metasCust, metasCap }) {
               <th style={{ padding: '10px 12px', textAlign: 'center' }}>Rank</th>
               <th style={{ padding: '10px 12px', textAlign: 'right' }}>% Meta Cap.</th>
               <th style={{ padding: '10px 12px', textAlign: 'center' }}>Rank</th>
-              <th style={{ padding: '10px 12px', textAlign: 'right' }}>Cresc. vs Dez/25</th>
+              <th style={{ padding: '10px 12px', textAlign: 'right' }}>{`Cresc. vs Dez/${String(ANO_BASE).slice(2)}`}</th>
               <th style={{ padding: '10px 12px', textAlign: 'right' }}>Share Custódia</th>
               <th style={{ padding: '10px 12px', textAlign: 'center' }}>🏆 Geral</th>
             </tr>
