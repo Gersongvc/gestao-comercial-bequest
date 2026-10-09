@@ -8,6 +8,22 @@ const KEYS = {
   metapes:    'bc_metapes',
 };
 
+// Versão dos dados — incrementar sempre que atualizar dados em dados.js
+const DATA_VERSION = '2026-09';
+const VERSION_KEY  = 'bc_data_version';
+
+// Se a versão mudou, limpa o cache e força recarregar dos dados do código
+function checkVersion() {
+  try {
+    const stored = localStorage.getItem(VERSION_KEY);
+    if (stored !== DATA_VERSION) {
+      Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(VERSION_KEY, DATA_VERSION);
+    }
+  } catch {}
+}
+checkVersion();
+
 function get(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
