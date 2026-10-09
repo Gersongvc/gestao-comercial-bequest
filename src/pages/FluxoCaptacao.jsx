@@ -6,7 +6,19 @@ import {
 import { getAssessores } from '../data/store';
 import { fmtM, iniciais } from '../utils/fmt';
 
-const MESES_DISP = MESES.slice(0, 7);
+// Detecta automaticamente quantos meses têm dados (aporte ou resgate ≠ 0)
+function calcMesesComDados() {
+  const todas = Object.values(APORTE_INICIAL).concat(Object.values(RESGATE_INICIAL));
+  let ultimo = 0;
+  todas.forEach(arr => {
+    if (!Array.isArray(arr)) return;
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (arr[i] !== 0) { if (i > ultimo) ultimo = i; break; }
+    }
+  });
+  return MESES.slice(0, ultimo + 1);
+}
+const MESES_DISP = calcMesesComDados();
 
 /* ── Tabela mês a mês com sub-linhas Aporte / Resgate / Líquido ── */
 const LINHAS = [
@@ -190,8 +202,8 @@ export default function FluxoCaptacao() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
         {[
-          { label: 'Total Aporte (Jan–Jul)',  val: fmtM(somaAporte),        color: '#1D9E75' },
-          { label: 'Total Resgate (Jan–Jul)', val: fmtM(-somaResgate),       color: '#D85A30' },
+          { label: `Total Aporte (${MESES_DISP[mesDe]}–${MESES_DISP[mesAte]})`,  val: fmtM(somaAporte),        color: '#1D9E75' },
+          { label: `Total Resgate (${MESES_DISP[mesDe]}–${MESES_DISP[mesAte]})`, val: fmtM(-somaResgate),       color: '#D85A30' },
           { label: 'Captação Líquida',        val: fmtM(somaLiq),            color: somaLiq >= 0 ? '#185FA5' : '#D85A30' },
           { label: 'Taxa de Retenção',        val: `${taxaRet.toFixed(1)}%`, color: taxaRet >= 0 ? '#7F77DD' : '#D85A30' },
         ].map(k => (
