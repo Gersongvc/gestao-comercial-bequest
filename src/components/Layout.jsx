@@ -1,80 +1,46 @@
-import { useState } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { MESES_FULL } from '../data/dados';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const NAV = [
-  { to: '/dashboard',           icon: 'ti-layout-dashboard', label: 'Dashboard Geral' },
-  { to: '/dashboard-assessor',  icon: 'ti-user-search',      label: 'Dashboard Assessor' },
-  { to: '/assessores',          icon: 'ti-users',             label: 'Assessores' },
-  { to: '/custodia',       icon: 'ti-building-bank',     label: 'Custódia' },
-  { to: '/captacao',       icon: 'ti-trending-up',       label: 'Captação' },
-  { to: '/metas',          icon: 'ti-target',            label: 'Metas' },
-  { to: '/acompanhamento',  icon: 'ti-chart-bar',         label: 'Acompanhamento' },
-  { to: '/fluxo-captacao', icon: 'ti-arrows-exchange',   label: 'Fluxo Captação' },
+  { to: '/',              icon: 'ti-dashboard',    label: 'Dashboard' },
+  { to: '/assessores',    icon: 'ti-users',         label: 'Assessores' },
+  { to: '/custodia',      icon: 'ti-chart-bar',     label: 'Custódia' },
+  { to: '/captacao',      icon: 'ti-trending-up',   label: 'Captação' },
+  { to: '/metas',         icon: 'ti-target',        label: 'Metas' },
+  { to: '/acompanhamento',icon: 'ti-eye',           label: 'Acompanhamento' },
 ];
 
-const PAGE_TITLES = {
-  '/dashboard':           'Dashboard Geral',
-  '/dashboard-assessor':  'Dashboard Assessor',
-  '/assessores':          'Assessores',
-  '/custodia':       'Custódia',
-  '/captacao':       'Captação Líquida',
-  '/metas':          'Metas',
-  '/acompanhamento':  'Acompanhamento',
-  '/fluxo-captacao':  'Fluxo de Captação',
-};
-
-export default function Layout() {
-  const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-  const title = PAGE_TITLES[location.pathname] || 'Gestão Comercial';
-  const now = new Date();
-  const dateStr = `${now.getDate()} de ${MESES_FULL[now.getMonth()]} de ${now.getFullYear()}`;
+export default function Layout({ children }) {
+  const loc = useLocation();
+  const current = NAV.find(n => n.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(n.to));
 
   return (
-    <div className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
+    <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <h2>Bequest Capital</h2>
-          <p>Gestão Comercial</p>
+        <div className="sidebar-brand">
+          <div className="brand-logo">BC</div>
+          <div>
+            <div className="brand-name">Bequest Capital</div>
+            <div className="brand-sub">Gestão Comercial</div>
+          </div>
         </div>
         <nav className="sidebar-nav">
           {NAV.map(n => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-              title={collapsed ? n.label : undefined}
-            >
-              <i className={`ti ${n.icon}`} />
-              <span className="nav-label">{n.label}</span>
+            <NavLink key={n.to} to={n.to} end={n.to==='/'} className={({isActive})=>`nav-item${isActive?' active':''}`}>
+              <i className={`ti ${n.icon}`}></i>
+              <span>{n.label}</span>
             </NavLink>
           ))}
         </nav>
-        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div className="nav-footer-text">
-            XC Assessoria Financeira<br />Afiliada XP Investimentos
-          </div>
+        <div className="sidebar-footer">
+          <span>© 2026 Bequest Capital</span>
         </div>
-
-        {/* Botão de recolher */}
-        <button
-          className="sidebar-toggle"
-          onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-        >
-          <i className={`ti ${collapsed ? 'ti-chevron-right' : 'ti-chevron-left'}`} />
-        </button>
       </aside>
-
       <div className="main-area">
         <header className="topbar">
-          <h1>{title}</h1>
-          <span className="topbar-date">{dateStr}</span>
+          <h1 className="page-title">{current?.label || 'Painel'}</h1>
+          <span className="topbar-date">{new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>
         </header>
-        <main className="page-content">
-          <Outlet />
-        </main>
+        <main className="page-content">{children}</main>
       </div>
     </div>
   );

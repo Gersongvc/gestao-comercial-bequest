@@ -1,136 +1,86 @@
 import { useState } from 'react';
-import * as XLSX from 'xlsx';
-import { MESES, CIDADES, COR_CIDADE, COR_BG, CUSTODIA_INICIAL } from '../data/dados';
-import { getAssessores, getCustodia, saveCustodia } from '../data/store';
-import { fmtMCustodia, iniciais } from '../utils/fmt';
+import { getAssessores, getCustodia, setCustodia } from '../data/store.js';
+import { MESES, COR_CIDADE, CIDADES } from '../data/dados.js';
+import { fmtBRL } from '../utils/fmt.js';
 
 export default function Custodia() {
-  const [assessores]  = useState(getAssessores);
-  const [dados, setDados] = useState(getCustodia);
-  const [filtro, setFiltro] = useState('');
+  const [cidFiltro, setCidFiltro] = useState('');
+  const assessores = getAssessores().filter(a => a.ativo);
+  const [dados, setDados] = useState(getCustodia());
   const [saved, setSaved] = useState(false);
-  const [imported, setImported] = useState(false);
 
-  function handleImportarBase() {
-    setDados(CUSTODIA_INICIAL);
-    saveCustodia(CUSTODIA_INICIAL);
-    setImported(true);
-    setTimeout(() => setImported(false), 2500);
-  }
+  const filtrado = assessores.filter(a => !cidFiltro || a.cidade === cidFiltro);
 
-  const ativos = assessores.filter(a => a.ativo && (!filtro || a.cidade === filtro));
+  const update = (cod, i, val) => {
+    const num = parseFloat(val.replace(/\./g,'').replace(',','.')) || 0;
+    setDados(d => ({ ...d, [cod]: (d[cod]||Array(12).fill(0)).map((v,j)=>j===i?num:v) }));
+  };
 
-  function handleChange(cod, mes, val) {
-    const num = parseFloat(val) || 0;
-    setDados(d => ({ ...d, [cod]: d[cod]?.map((v, i) => i === mes ? num : v) || Array(12).fill(0).map((v, i) => i === mes ? num : v) }));
-  }
+  const save = () => { setCustodia(dados); setSaved(true); setTimeout(()=>setSaved(false),2000); };
 
-  function handleSave() {
-    saveCustodia(dados);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
+  const exportXlsx = async () => {
+    const { utils, writeFile } = await import('xlsx');
+    const rows = [['Assessor','Código','Cidade',...MESES,'Total']];
+    filtrado.forEach(a => {
+      const vals = dados[a.cod] || Array(12).fill(0);
+      rows.push([a.nome, a.cod, CIDADES[a.cidade], ...vals, vals.reduce((s,v)=>s+v,0)]);
+    });
+    const ws = utils.aoa_to_sheet(rows);
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Custódia 2026');
+    writeFile(wb, 'custodia_2026.xlsx');
+  };
 
-  function exportar() {
-    const rows = ativos.map(a => ({
-      Código: a.cod, Assessor: a.nome, Cidade: CIDADES[a.cidade],
-      ...Object.fromEntries(MESES.map((m, i) => [m, dados[a.cod]?.[i] || 0]))
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Custódia');
-    XLSX.writeFile(wb, 'custodia.xlsx');
-  }
-
-  const totaisMes = MESES.map((_, i) =>
-    ativos.reduce((s, a) => s + (dados[a.cod]?.[i] || 0), 0)
-  );
-
-  const totaisCidade = Object.fromEntries(
-    Object.keys(CIDADES).map(c => [c,
-      MESES.map((_, i) =>
-        assessores.filter(a => a.ativo && a.cidade === c).reduce((s, a) => s + (dados[a.cod]?.[i] || 0), 0)
-      )
-    ])
-  );
+  // Totais por mês
+  const totais = MESES.map((_,i) => filtrado.reduce((s,a)=>s+(dados[a.cod]?.[i]||0),0));
 
   return (
-    <>
-      <div className="filters-bar">
-        <select value={filtro} onChange={e => setFiltro(e.target.value)}>
+    <div>
+      <div className="toolbar">
+        <select className="select-sm" value={cidFiltro} onChange={e=>setCidFiltro(e.target.value)}>
           <option value="">Todas as cidades</option>
-          {Object.entries(CIDADES).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+          {Object.entries(CIDADES).map(([k,v])=><option key={k} value={k}>{v}</option>)}
         </select>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={handleImportarBase} title="Carrega os dados da planilha Custódia - atualizado 202607.xlsx (Jan–Jul/2026)">
-            <i className={`ti ${imported ? 'ti-check' : 'ti-table-import'}`} /> {imported ? 'Importado!' : 'Importar base'}
-          </button>
-          <button className="btn btn-outline" onClick={exportar}><i className="ti ti-file-spreadsheet" /> Exportar Excel</button>
-          <button className="btn btn-success" onClick={handleSave}>
-            <i className={`ti ${saved ? 'ti-check' : 'ti-device-floppy'}`} /> {saved ? 'Salvo!' : 'Salvar'}
-          </button>
-        </div>
+        <button className="btn-primary" onClick={save}><i className="ti ti-device-floppy"></i> {saved?'Salvo!':'Salvar'}</button>
+        <button className="btn-ghost" onClick={exportXlsx}><i className="ti ti-file-spreadsheet"></i> Exportar Excel</button>
       </div>
 
-      <div className="table-card editable-table">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ position: 'sticky', left: 0, background: 'var(--surface2)', zIndex: 2, minWidth: 220 }}>Assessor</th>
-                {MESES.map(m => <th key={m} style={{ textAlign: 'right', minWidth: 155 }}>{m}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {ativos.map(a => (
-                <tr key={a.cod}>
-                  <td style={{ position: 'sticky', left: 0, background: 'inherit', zIndex: 1 }}>
-                    <div className="assessor-cell">
-                      <div className="avatar" style={{ background: COR_CIDADE[a.cidade] }}>{iniciais(a.nome)}</div>
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: 12 }}>{a.nome}</div>
-                        <span className="cidade-pill" style={{ background: COR_BG[a.cidade], color: COR_CIDADE[a.cidade], fontSize: 10, padding: '1px 6px' }}>
-                          {a.cidade}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  {MESES.map((_, i) => (
-                    <td key={i} style={{ textAlign: 'right', padding: '6px 8px' }}>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={dados[a.cod]?.[i] || 0}
-                        onChange={e => handleChange(a.cod, i, e.target.value)}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {!filtro && Object.entries(CIDADES).map(([c, nome]) => (
-                <tr key={c} style={{ borderTop: '2px solid var(--border)' }}>
-                  <td style={{ position: 'sticky', left: 0, background: COR_BG[c], zIndex: 1, fontWeight: 700 }}>
-                    <span style={{ color: COR_CIDADE[c] }}>{nome}</span>
-                  </td>
-                  {totaisCidade[c].map((v, i) => (
-                    <td key={i} style={{ textAlign: 'right', fontWeight: 600, background: COR_BG[c], color: COR_CIDADE[c], fontSize: 12 }}>
-                      {fmtMCustodia(v)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              <tr className="total-row">
-                <td style={{ position: 'sticky', left: 0, background: 'var(--surface2)', zIndex: 1 }}>TOTAL GERAL</td>
-                {totaisMes.map((v, i) => (
-                  <td key={i} style={{ textAlign: 'right', fontFamily: 'Space Grotesk' }}>
-                    {fmtMCustodia(v)}
+      <div className="table-card" style={{overflowX:'auto'}}>
+        <table className="data-table fixed-table">
+          <thead>
+            <tr>
+              <th className="col-nome">Assessor</th>
+              <th>Cidade</th>
+              {MESES.map(m=><th key={m} className="col-mes">{m}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {filtrado.map(a => (
+              <tr key={a.cod}>
+                <td>
+                  <div className="assessor-nome">{a.nome}</div>
+                  <div className="assessor-cod">{a.cod}</div>
+                </td>
+                <td><span className="city-pill" style={{background:COR_CIDADE[a.cidade]+'22',color:COR_CIDADE[a.cidade]}}>{a.cidade}</span></td>
+                {MESES.map((_,i)=>(
+                  <td key={i}>
+                    <input
+                      className="cell-input"
+                      type="text"
+                      value={(dados[a.cod]?.[i]||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                      onChange={e=>update(a.cod,i,e.target.value)}
+                    />
                   </td>
                 ))}
               </tr>
-            </tbody>
-          </table>
-        </div>
+            ))}
+            <tr className="totals-row">
+              <td colSpan={2}><strong>Total</strong></td>
+              {totais.map((t,i)=><td key={i} className="num"><strong>{fmtBRL(t,true)}</strong></td>)}
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </>
+    </div>
   );
 }
