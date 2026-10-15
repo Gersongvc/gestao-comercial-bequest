@@ -917,6 +917,182 @@ function PorCidade({ assessores, custodia, captacao, metasCust, metasCap }) {
   );
 }
 
+/* ── Tab: Visão Geral ── */
+function VisaoGeral({ assessores, custodia, captacao }) {
+  const mesAtual = new Date().getMonth();
+  const [mes, setMes] = useState(mesAtual);
+
+  const ativos = assessores.filter(a => a.ativo);
+
+  // Custódia no mês selecionado
+  const custLista = ativos
+    .map(a => ({ ...a, valor: custodia[a.cod]?.[mes] || 0 }))
+    .filter(a => a.valor > 0)
+    .sort((a, b) => b.valor - a.valor);
+
+  const maxCust = custLista[0]?.valor || 1;
+  const totalCust = custLista.reduce((s, a) => s + a.valor, 0);
+
+  // Captação líquida (aporte - resgate) — já está em getCaptacao()
+  const capLista = ativos
+    .map(a => ({ ...a, valor: captacao[a.cod]?.[mes] || 0 }))
+    .filter(a => a.valor !== 0)
+    .sort((a, b) => b.valor - a.valor);
+
+  const maxCapAbs = Math.max(...capLista.map(a => Math.abs(a.valor)), 1);
+  const totalCap = capLista.reduce((s, a) => s + a.valor, 0);
+
+  const BAR_MAX_W = 120; // px
+
+  return (
+    <>
+      {/* Seletor de mês */}
+      <div className="filters-bar" style={{ marginBottom: 20 }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)' }}>Mês:</label>
+        <div className="toggle-group">
+          {MESES.map((m, i) => (
+            <button key={i} className={`toggle-btn ${mes === i ? 'active' : ''}`} onClick={() => setMes(i)}>{m}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+
+        {/* ── Painel Custódia ── */}
+        <div className="table-card" style={{ marginBottom: 0 }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <i className="ti ti-building-bank" style={{ color: 'var(--gold)', fontSize: 16 }} />
+            <span style={{ fontWeight: 700, fontSize: 14 }}>Custódia</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' }}>{MESES_FULL[mes]}</span>
+          </div>
+          <div style={{ overflowY: 'auto', maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 36 }}>#</th>
+                  <th>Assessor</th>
+                  <th style={{ textAlign: 'right' }}>Custódia</th>
+                  <th style={{ width: BAR_MAX_W + 16 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {custLista.map((a, i) => {
+                  const pct = (a.valor / maxCust) * 100;
+                  const barW = Math.round((a.valor / maxCust) * BAR_MAX_W);
+                  return (
+                    <tr key={a.cod}>
+                      <td style={{ fontWeight: 700, color: i < 3 ? 'var(--amber)' : 'var(--text3)', fontSize: 12 }}>{i + 1}</td>
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.2 }}>{a.nome}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)' }}>{a.cod}</div>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {fmtMCustodia(a.valor)}
+                      </td>
+                      <td style={{ padding: '8px 12px 8px 4px' }}>
+                        <div style={{ height: 10, width: BAR_MAX_W, background: '#F0EDE5', borderRadius: 5, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: barW, background: 'var(--gold)', borderRadius: 5, transition: 'width 0.3s' }} />
+                        </div>
+                        <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 2 }}>{pct.toFixed(1)}%</div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
+                  <td colSpan={2} style={{ fontWeight: 700, fontSize: 12, padding: '10px 14px' }}>Total</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 13, padding: '10px 14px', color: 'var(--text)' }}>
+                    {fmtMCustodia(totalCust)}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        {/* ── Painel Captação Líquida ── */}
+        <div className="table-card" style={{ marginBottom: 0 }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <i className="ti ti-trending-up" style={{ color: 'var(--gold)', fontSize: 16 }} />
+            <span style={{ fontWeight: 700, fontSize: 14 }}>Captação Líquida</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)' }}>{MESES_FULL[mes]}</span>
+          </div>
+          <div style={{ overflowY: 'auto', maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 36 }}>#</th>
+                  <th>Assessor</th>
+                  <th style={{ textAlign: 'right' }}>Captação Líq.</th>
+                  <th style={{ width: BAR_MAX_W * 2 + 16 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {capLista.map((a, i) => {
+                  const isPos = a.valor >= 0;
+                  const barW  = Math.round((Math.abs(a.valor) / maxCapAbs) * BAR_MAX_W);
+                  const fmt   = v => {
+                    const abs = Math.abs(v);
+                    const str = abs >= 1e6 ? `R$ ${(abs/1e6).toFixed(2)}M` : `R$ ${(abs/1e3).toFixed(0)}k`;
+                    return (v < 0 ? '−' : '+') + str;
+                  };
+                  return (
+                    <tr key={a.cod}>
+                      <td style={{ fontWeight: 700, color: i < 3 && isPos ? 'var(--amber)' : 'var(--text3)', fontSize: 12 }}>{i + 1}</td>
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: 12, lineHeight: 1.2 }}>{a.nome}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text3)' }}>{a.cod}</div>
+                      </td>
+                      <td style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', color: isPos ? 'var(--green)' : 'var(--red)' }}>
+                        {fmt(a.valor)}
+                      </td>
+                      <td style={{ padding: '8px 12px 8px 4px' }}>
+                        {/* barra centrada: positivo cresce para a direita, negativo para esquerda */}
+                        <div style={{ display: 'flex', alignItems: 'center', height: 10 }}>
+                          {/* lado negativo */}
+                          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                            {!isPos && (
+                              <div style={{ height: 10, width: barW, background: 'var(--red)', borderRadius: '5px 0 0 5px', transition: 'width 0.3s' }} />
+                            )}
+                          </div>
+                          {/* divisor central */}
+                          <div style={{ width: 1, height: 14, background: 'var(--border)', flexShrink: 0 }} />
+                          {/* lado positivo */}
+                          <div style={{ flex: 1 }}>
+                            {isPos && (
+                              <div style={{ height: 10, width: barW, background: 'var(--gold)', borderRadius: '0 5px 5px 0', transition: 'width 0.3s' }} />
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: '2px solid var(--border)', background: 'var(--surface2)' }}>
+                  <td colSpan={2} style={{ fontWeight: 700, fontSize: 12, padding: '10px 14px' }}>Total</td>
+                  <td style={{ textAlign: 'right', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 13, padding: '10px 14px', color: totalCap >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                    {(() => {
+                      const abs = Math.abs(totalCap);
+                      const str = abs >= 1e6 ? `R$ ${(abs/1e6).toFixed(2)}M` : `R$ ${(abs/1e3).toFixed(0)}k`;
+                      return (totalCap < 0 ? '−' : '+') + str;
+                    })()}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </>
+  );
+}
+
 /* ── Tab: Custódia XP / Pessoal ── */
 function CustodiaXP() {
   const lineRef = useRef(null);
@@ -1025,7 +1201,7 @@ function CustodiaXP() {
 
 /* ── Main ── */
 export default function Acompanhamento() {
-  const [tab, setTab] = useState('ranking');
+  const [tab, setTab] = useState('visaogeral');
   const assessores = getAssessores();
   const custodia   = getCustodia();
   const captacao   = getCaptacao();
@@ -1033,6 +1209,7 @@ export default function Acompanhamento() {
   const metasCap   = getMetasCaptacao();
 
   const TABS = [
+    { id: 'visaogeral', label: 'Visão Geral' },
     { id: 'ranking',    label: 'Ranking' },
     { id: 'mesmames',   label: 'Mês a mês' },
     { id: 'porcidade',  label: 'Por cidade' },
@@ -1049,6 +1226,7 @@ export default function Acompanhamento() {
         ))}
       </div>
 
+      {tab === 'visaogeral' && <VisaoGeral assessores={assessores} custodia={custodia} captacao={captacao} />}
       {tab === 'ranking'   && <Ranking assessores={assessores} custodia={custodia} metas={metasCust} />}
       {tab === 'mesmames'  && <MesAMes assessores={assessores} custodia={custodia} captacao={captacao} metasCust={metasCust} metasCap={metasCap} />}
       {tab === 'porcidade' && <PorCidade assessores={assessores} custodia={custodia} captacao={captacao} metasCust={metasCust} metasCap={metasCap} />}
