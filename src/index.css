@@ -1,24 +1,42 @@
 :root {
-  --bg: #F4F6FB;
+  /* ── Bequest Capital — Identidade Visual ── */
+  --gold:    #FBBC1B;
+  --gold-dk: #D9A010;
+  --gold-lt: #FDD35F;
+
+  /* Superfícies escuras (hero/sidebar) */
+  --dark:    #1B1B1E;
+  --dark2:   #111114;
+  --dark3:   #2A2A2F;
+
+  /* Fundo da área principal: off-white quente para contrastar com o dark */
+  --bg:      #F7F5F0;
   --surface: #FFFFFF;
-  --surface2: #F0F3FA;
-  --border: #E2E7F0;
-  --text: #0D1B2E;
-  --text2: #4A5568;
-  --text3: #8A96AA;
-  --blue: #185FA5;
-  --green: #1D9E75;
-  --red: #D85A30;
-  --purple: #7F77DD;
-  --amber: #BA7517;
-  --navy: #002060;
+  --surface2:#F0EDE5;
+  --border:  #E5E0D5;
+
+  /* Texto */
+  --text:    #1B1B1E;
+  --text2:   #4A4A52;
+  --text3:   #8A8A96;
+
+  /* Cores funcionais */
+  --blue:    #185FA5;
+  --green:   #1D9E75;
+  --red:     #D85A30;
+  --purple:  #7F77DD;
+  --amber:   #BA7517;
+
+  /* Sidebar usa o escuro Bequest */
+  --navy:    var(--dark2);
+
   --sidebar-w: 220px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Raleway', 'Inter', sans-serif;
   background: var(--bg);
   color: var(--text);
   font-size: 14px;
@@ -32,7 +50,8 @@ body {
 
 .sidebar {
   width: var(--sidebar-w);
-  background: var(--navy);
+  background: var(--dark2);
+  border-right: 1px solid rgba(251,188,27,0.12);
   position: fixed;
   top: 0; left: 0; bottom: 0;
   display: flex; flex-direction: column;
@@ -42,20 +61,21 @@ body {
 }
 
 .sidebar-logo {
-  padding: 24px 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(251,188,27,0.15);
   white-space: nowrap;
   overflow: hidden;
 }
 .sidebar-logo h2 {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 15px; font-weight: 700;
-  color: #fff; letter-spacing: 0.02em;
+  font-family: 'Raleway', sans-serif;
+  font-size: 15px; font-weight: 800;
+  color: var(--gold); letter-spacing: 0.04em;
   transition: opacity 0.15s;
+  text-transform: uppercase;
 }
 .sidebar-logo p {
-  font-size: 11px; color: rgba(255,255,255,0.5);
-  margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase;
+  font-size: 10px; color: rgba(255,255,255,0.4);
+  margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase;
   transition: opacity 0.15s;
 }
 
@@ -73,8 +93,8 @@ body {
 }
 .nav-item i { font-size: 17px; min-width: 20px; text-align: center; flex-shrink: 0; }
 .nav-label { transition: opacity 0.15s; }
-.nav-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-.nav-item.active { background: rgba(255,255,255,0.15); color: #fff; }
+.nav-item:hover { background: rgba(251,188,27,0.10); color: var(--gold); }
+.nav-item.active { background: rgba(251,188,27,0.16); color: var(--gold); border-left: 3px solid var(--gold); padding-left: 9px; }
 
 .nav-footer-text {
   font-size: 11px; color: rgba(255,255,255,0.3); line-height: 1.4;
@@ -192,7 +212,7 @@ thead th {
 tbody tr { border-bottom: 1px solid var(--border); }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:nth-child(even) { background: #FAFBFD; }
-tbody tr:hover { background: #F0F4FF; }
+tbody tr:hover { background: #F7F2E8; }
 tbody td { padding: 10px 14px; font-size: 13px; color: var(--text); vertical-align: middle; }
 
 tr.total-row td {
@@ -240,7 +260,7 @@ tr.total-row td {
   font-family: inherit;
 }
 .filters-bar input:focus, .filters-bar select:focus {
-  border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+  border-color: var(--gold); box-shadow: 0 0 0 3px rgba(251,188,27,0.18);
 }
 
 /* ── Buttons ── */
@@ -251,7 +271,8 @@ tr.total-row td {
   font-family: inherit; transition: opacity 0.15s;
 }
 .btn:hover { opacity: 0.85; }
-.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary { background: var(--gold); color: var(--dark); }
+.btn-gold    { background: var(--gold); color: var(--dark); font-weight: 700; }
 .btn-success { background: var(--green); color: #fff; }
 .btn-danger  { background: var(--red); color: #fff; }
 .btn-outline {
@@ -297,7 +318,7 @@ tr.total-row td {
   font-size: 13px; color: var(--text); font-family: inherit; outline: none;
 }
 .form-group input:focus, .form-group select:focus {
-  border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+  border-color: var(--gold); box-shadow: 0 0 0 3px rgba(251,188,27,0.18);
 }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
 
@@ -310,8 +331,8 @@ tr.total-row td {
 }
 .editable-table input[type="number"]:hover { border-color: var(--border); }
 .editable-table input[type="number"]:focus {
-  border-color: var(--blue); background: #fff;
-  box-shadow: 0 0 0 2px rgba(24,95,165,0.12); outline: none;
+  border-color: var(--gold); background: #fff;
+  box-shadow: 0 0 0 2px rgba(251,188,27,0.18); outline: none;
 }
 
 /* ── Value colors ── */
@@ -327,7 +348,7 @@ tr.total-row td {
   cursor: pointer; border-bottom: 2px solid transparent;
   margin-bottom: -2px; font-family: inherit; transition: color 0.15s;
 }
-.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-btn.active { color: var(--gold-dk); border-bottom-color: var(--gold); }
 .tab-btn:hover:not(.active) { color: var(--text); }
 
 /* ── Section title ── */
@@ -351,7 +372,7 @@ tr.total-row td {
   font-family: inherit; background: transparent; color: var(--text3);
   transition: all 0.15s;
 }
-.toggle-btn.active { background: var(--surface); color: var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.toggle-btn.active { background: var(--gold); color: var(--dark); font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
