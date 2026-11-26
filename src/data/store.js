@@ -11,7 +11,7 @@ const KEY_METAS_CUSTODIA = 'bc_metas_custodia';
 const KEY_METAS_CAPTACAO = 'bc_metas_captacao';
 
 // Versão dos dados — incrementar sempre que atualizar dados em dados.js
-const DATA_VERSION = '2026-09';
+const DATA_VERSION = '2026-11-salvador';
 const VERSION_KEY  = 'bc_data_version';
 
 // Se a versão mudou, limpa o cache e força recarregar dos dados do código

@@ -1,8 +1,8 @@
 export const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 export const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-export const CIDADES = { JP:'João Pessoa', NAT:'Natal', REC:'Recife', SL:'São Luís' };
-export const COR_CIDADE = { JP:'#185FA5', NAT:'#1D9E75', REC:'#D85A30', SL:'#7F77DD' };
-export const COR_BG = { JP:'#E6F1FB', NAT:'#EAF3DE', REC:'#FAECE7', SL:'#EEEDFE' };
+export const CIDADES = { JP:'João Pessoa', NAT:'Natal', REC:'Recife', SL:'São Luís', SSA:'Salvador' };
+export const COR_CIDADE = { JP:'#185FA5', NAT:'#1D9E75', REC:'#D85A30', SL:'#7F77DD', SSA:'#BA7517' };
+export const COR_BG = { JP:'#E6F1FB', NAT:'#EAF3DE', REC:'#FAECE7', SL:'#EEEDFE', SSA:'#FAEEDA' };
 
 export const ASSESSORES_INICIAL = [
   { cod:'A22653', nome:'Ricardo Vagner Valmorbida',             cidade:'NAT', ativo:true },
@@ -28,6 +28,10 @@ export const ASSESSORES_INICIAL = [
   { cod:'A96545', nome:'Rodrigo Arruda Albuquerque Pires',      cidade:'REC', ativo:false },
   { cod:'A5489',  nome:'Eliseu Batista da Silva',               cidade:'JP',  ativo:true },
   { cod:'A5428',  nome:'Lucas de Souza Bossan',                 cidade:'SL',  ativo:true },
+  { cod:'A20160', nome:'Henrique Abreu de Oliveira e Sousa',    cidade:'SSA', ativo:true },
+  { cod:'A41628', nome:'Alexandre Praciano Lopes Bezerra',      cidade:'SSA', ativo:true },
+  { cod:'A99684', nome:'Daniel de Oliveira Lins',               cidade:'SSA', ativo:true },
+  { cod:'A41642', nome:'Ari Sousa Filho',                       cidade:'SSA', ativo:true },
 ];
 
 // Posição final Dez/2025 (fonte: relatório XP)
