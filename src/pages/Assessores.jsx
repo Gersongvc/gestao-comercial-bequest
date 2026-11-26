@@ -50,7 +50,7 @@ export default function Assessores() {
 
   return (
     <>
-      <div className="kpi-grid">
+      <div className="kpi-grid" style={{ gridTemplateColumns: `repeat(${Object.keys(CIDADES).length},1fr)` }}>
         {Object.entries(CIDADES).map(([cod, nome]) => (
           <div key={cod} className="kpi-card" style={{ borderLeft: `4px solid ${COR_CIDADE[cod]}` }}>
             <div className="kpi-label">{nome}</div>
